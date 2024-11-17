@@ -118,3 +118,33 @@ class Client:
             params["landTypeCode"] = land_type_code
 
         return self._get("XPT001", params)
+
+    def get_land_price_public_notices_and_surveys_point(
+        self,
+        z: Literal[13,14,15],
+        x: int,
+        y: int,
+        year: int,
+        price_classification: Literal["0", "1"] = None,
+        use_category_code: list[enums.UseDivision] = None,
+    ):
+        """Get land price public notices (standard land prices) and
+        prefectural land price surveys (benchmark land prices) point.
+        See https://www.reinfolib.mlit.go.jp/help/apiManual/#titleApi8 for details.
+        :param z: Zoom level (scale). 13 ~ 15 (detail)
+        :param x: x value of tile coordinates.
+        :param y: y value of tile coordinates.
+        :param year: target year.
+        :param price_classification: Land price classification code.
+          0: Land price public notices, 1: Prefectural land price surveys, Unspecified: Both 0 and 1.
+          Unspecified: Both transaction price information and contract price information.
+        :param use_category_code: Use division code. See https://www.reinfolib.mlit.go.jp/help/apiManual/#titleApi8
+        :return:
+        """
+        params = {"response_format": "geojson", "z": z, "x": x, "y": y, "year": year}
+        if price_classification:
+            params["priceClassification"] = price_classification
+        if use_category_code:
+            params["useCategoryCode"] = ",".join(use_category_code)
+
+        return self._get("XPT002", params)
