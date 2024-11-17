@@ -1,5 +1,7 @@
 import os
+
 import requests
+
 
 class Client:
     def __init__(self, api_key: str):
@@ -10,8 +12,13 @@ class Client:
 
         api_url = os.path.join(self.base_url, endpoint)
         headers = {"Ocp-Apim-Subscription-Key": self.api_key}
-        response = requests.get(api_url, headers=headers, params=params)
-        return response.json()
+        try:
+            r = requests.get(api_url, headers=headers, params=params)
+            r.raise_for_status()
+        except requests.RequestException as e:
+            raise SystemExit(e)
+
+        return r.json()
 
     def get_municipalities(self, area: int, language: str = None) -> dict:
         """Get municipality (city/ward/town/village) list.
