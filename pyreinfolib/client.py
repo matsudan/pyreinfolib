@@ -60,7 +60,7 @@ class Client:
         if language:
             params["language"] = language
 
-        return self.__get("XIT001", params)
+        return self._get("XIT001", params)
 
     def get_municipalities(self, area: str, language: str = None) -> dict:
         """Get municipality (city/ward/town/village) list.
@@ -73,7 +73,7 @@ class Client:
         if language:
             params.update(language=language)
 
-        return self.__get("XIT002", params)
+        return self._get("XIT002", params)
 
     def get_appraisal_reports(self, year: int, area: str, division: enums.UseDivision):
         """Get real estate appraisal reports.
@@ -85,4 +85,4 @@ class Client:
         """
         params = {"year": year, "area": area, "division": division}
 
-        return self.__get("XCT001", params)
+        return self._get("XCT001", params)
