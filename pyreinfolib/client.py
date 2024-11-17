@@ -60,7 +60,7 @@ class Client:
 
         return self.__get("XIT001", params)
 
-    def get_municipalities(self, area: int, language: str = None) -> dict:
+    def get_municipalities(self, area: str, language: str = None) -> dict:
         """Get municipality (city/ward/town/village) list.
         See https://www.reinfolib.mlit.go.jp/help/apiManual/#titleApi5 for details.
         :param area: Prefecture code. See https://nlftp.mlit.go.jp/ksj/gml/codelist/PrefCd.html
