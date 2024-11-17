@@ -1,4 +1,5 @@
 import logging
+from typing import Literal
 from urllib.parse import urljoin
 
 import requests
@@ -27,12 +28,12 @@ class Client:
     def get_real_estate_prices(
         self,
         year: int,
-        price_classification: str = None,
+        price_classification: Literal["01", "02"] = None,
         quarter: int = None,
         area: str = None,
         city: str = None,
         station: str = None,
-        language: str = None
+        language: Literal["ja", "en"] = None
     ) -> dict:
         """Get real estate prices. See https://www.reinfolib.mlit.go.jp/help/apiManual/#titleApi4 for details.
         :param price_classification: Price classification code.
@@ -62,7 +63,7 @@ class Client:
 
         return self._get("XIT001", params)
 
-    def get_municipalities(self, area: str, language: str = None) -> dict:
+    def get_municipalities(self, area: str, language: Literal["ja", "en"] = None) -> dict:
         """Get municipality (city/ward/town/village) list.
         See https://www.reinfolib.mlit.go.jp/help/apiManual/#titleApi5 for details.
         :param area: Prefecture code. See https://nlftp.mlit.go.jp/ksj/gml/codelist/PrefCd.html
@@ -94,7 +95,7 @@ class Client:
         y: int,
         period_from: int,
         period_to: int,
-        price_classification: str = None,
+        price_classification: Literal["01", "02"] = None,
         land_type_code: enums.LandTypeCode = None,
     ) -> dict:
         """Get real estate prices point.
