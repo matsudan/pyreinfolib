@@ -42,7 +42,7 @@ class Client:
         :param city: Municipality code.
         :param station: Station code. See https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-N02-v3_1.html
         :param language: `ja` or `en`. If not specified, `ja`.
-        :return:
+        :return: Real estate prices.
         """
         params = {"year": year}
         if price_classification:
@@ -65,7 +65,7 @@ class Client:
         See https://www.reinfolib.mlit.go.jp/help/apiManual/#titleApi5 for details.
         :param area: Prefecture code. See https://nlftp.mlit.go.jp/ksj/gml/codelist/PrefCd.html
         :param language: `ja` or `en`. If not specified, `ja`.
-        :return:
+        :return: Municipality list.
         """
         params = {"area": area}
         if language:
