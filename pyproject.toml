@@ -1,7 +1,7 @@
 [project]
 name = "pyreinfolib"
 version = "0.1.0"
-description = "Python API client for Real Estate Information Library APIs"
+description = "Python client for Real Estate Information Library APIs"
 authors = [
     { name = "matsudan", email = "daaamatsun@gmail.com" }
 ]
@@ -10,6 +10,17 @@ dependencies = [
 ]
 readme = "README.md"
 requires-python = ">= 3.11"
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+keywords = ["real-estate", "api", "client"]
+
+[project.urls]
+Homepage = "https://github.com/matsudan/pyreinfolib"
 
 [build-system]
 requires = ["hatchling"]
