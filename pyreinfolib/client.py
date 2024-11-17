@@ -1,26 +1,28 @@
+import logging
 import os
 
 import requests
 
 from pyreinfolib import enums
 
+logger = logging.getLogger(__name__)
 
 class Client:
     def __init__(self, api_key: str):
         self.api_key = api_key
         self.base_url = "https://www.reinfolib.mlit.go.jp/ex-api/external"
 
-    def __get(self, endpoint: str, params: dict = None) -> dict:
+    def _get(self, endpoint: str, params: dict = None) -> dict:
 
         api_url = os.path.join(self.base_url, endpoint)
         headers = {"Ocp-Apim-Subscription-Key": self.api_key}
         try:
             r = requests.get(api_url, headers=headers, params=params)
             r.raise_for_status()
+            return r.json()
         except requests.RequestException as e:
-            raise SystemExit(e)
-
-        return r.json()
+            logger.error(f"Request failed for {api_url} with error: {e.response.text}")
+            raise
 
     def get_real_estate_prices(
         self,
