@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 class Client:
     def __init__(self, api_key: str):
         self.api_key = api_key
-        self.base_url = "https://www.reinfolib.mlit.go.jp/ex-api/external"
+        self.base_url = "https://www.reinfolib.mlit.go.jp/ex-api/external/"
 
     def _get(self, endpoint: str, params: dict = None) -> dict:
 
