@@ -29,7 +29,7 @@ allow-direct-references = true
 packages = ["pyreinfolib"]
 
 [tool.ruff]
-line-length = 88
+line-length = 120
 indent-width = 4
 target-version = "py312"
 
