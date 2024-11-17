@@ -96,7 +96,7 @@ class Client:
         period_from: int,
         period_to: int,
         price_classification: Literal["01", "02"] = None,
-        land_type_code: enums.LandTypeCode = None,
+        land_type_code: list[enums.LandTypeCode] = None,
     ) -> dict:
         """Get real estate prices point.
         See https://www.reinfolib.mlit.go.jp/help/apiManual/#titleApi7 for details.
@@ -115,7 +115,7 @@ class Client:
         if price_classification:
             params["priceClassification"] = price_classification
         if land_type_code:
-            params["landTypeCode"] = land_type_code
+            params["landTypeCode"] = ",".join(land_type_code)
 
         return self._get("XPT001", params)
 
