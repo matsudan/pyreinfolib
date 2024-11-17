@@ -86,3 +86,34 @@ class Client:
         params = {"year": year, "area": area, "division": division}
 
         return self._get("XCT001", params)
+
+    def get_real_estate_prices_point(
+        self,
+        z: int,
+        x: int,
+        y: int,
+        period_from: int,
+        period_to: int,
+        price_classification: str = None,
+        land_type_code: enums.LandTypeCode = None,
+    ) -> dict:
+        """Get real estate prices point.
+        See https://www.reinfolib.mlit.go.jp/help/apiManual/#titleApi7 for details.
+        :param z: Zoom level (scale). 11 (city) ~ 15 (detail)
+        :param x: x value of tile coordinates.
+        :param y: y value of tile coordinates.
+        :param period_from: Transaction period from. Format: YYYYN. e.g. 20241
+        :param period_to: Transaction period to. Format: YYYYN. e.g. 20242
+        :param price_classification: Price classification code.
+          01: Real estate transaction price information, 02: Contract price information,
+          Unspecified: Both transaction price information and contract price information.
+        :param land_type_code: Land type code. See https://www.reinfolib.mlit.go.jp/help/apiManual/#titleApi7
+        :return: Real estate prices point. (Response format: GeoJson)
+        """
+        params = {"response_format": "geojson", "z": z, "x": x, "y": y, "from": period_from, "to": period_to}
+        if price_classification:
+            params["priceClassification"] = price_classification
+        if land_type_code:
+            params["landTypeCode"] = land_type_code
+
+        return self._get("XPT001", params)
