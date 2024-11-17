@@ -29,7 +29,7 @@ class Client:
         self,
         year: int,
         price_classification: Literal["01", "02"] = None,
-        quarter: int = None,
+        quarter: Literal[1, 2, 3, 4] = None,
         area: str = None,
         city: str = None,
         station: str = None,
@@ -40,7 +40,7 @@ class Client:
           01: Real estate transaction price information, 02: Contract price information,
           Unspecified: Both transaction price information and contract price information.
         :param year: Transaction period (Year).
-        :param quarter: Transaction period (Quarter). 1 ~ 4
+        :param quarter: Transaction period (Quarter). 1: Jan.~Mar. 2: Apr.~Jun. 3: Jul.~Sep. 4: Oct.~Dec.
         :param area: Prefecture code. See https://nlftp.mlit.go.jp/ksj/gml/codelist/PrefCd.html
         :param city: Municipality code.
         :param station: Station code. See https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-N02-v3_1.html
