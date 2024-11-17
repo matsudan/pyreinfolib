@@ -26,3 +26,20 @@ class UseDivision(StrEnum):
 
     # 林地（都道府県地価調査）
     FOREST_LAND = "20"
+
+@unique
+class LandTypeCode(StrEnum):
+    # 宅地(土地)
+    LAND = "01"
+
+    # 宅地(土地と建物)
+    LAND_AND_BUILDING = "02"
+
+    # 中古マンション等
+    PRE_OWNED_CONDOMINIUMS_ETC = "07"
+
+    # 農地
+    AGRICULTURAL_LAND = "10"
+
+    # 林地
+    FOREST_LAND = "11"
