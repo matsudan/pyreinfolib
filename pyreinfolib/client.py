@@ -2,6 +2,8 @@ import os
 
 import requests
 
+from pyreinfolib import enums
+
 
 class Client:
     def __init__(self, api_key: str):
@@ -70,3 +72,15 @@ class Client:
             params.update(language=language)
 
         return self.__get("XIT002", params)
+
+    def get_appraisal_reports(self, year: int, area: str, division: enums.UseDivision):
+        """Get real estate appraisal reports.
+        See https://www.reinfolib.mlit.go.jp/help/apiManual/#titleApi6 for details.
+        :param year: Date of value.
+        :param area: Prefecture code.
+        :param division: Use division.
+        :return: Real estate appraisal reports.
+        """
+        params = {"year": year, "area": area, "division": division}
+
+        return self.__get("XCT001", params)
