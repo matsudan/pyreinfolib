@@ -1,5 +1,5 @@
 import logging
-import os
+from urllib.parse import urljoin
 
 import requests
 
@@ -14,7 +14,7 @@ class Client:
 
     def _get(self, endpoint: str, params: dict = None) -> dict:
 
-        api_url = os.path.join(self.base_url, endpoint)
+        api_url = urljoin(self.base_url, endpoint)
         headers = {"Ocp-Apim-Subscription-Key": self.api_key}
         try:
             r = requests.get(api_url, headers=headers, params=params)
