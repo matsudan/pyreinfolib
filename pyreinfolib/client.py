@@ -127,7 +127,7 @@ class Client:
         year: int,
         price_classification: Literal["0", "1"] = None,
         use_category_code: list[enums.UseDivision] = None,
-    ):
+    ) -> dict:
         """Get land price public notices (standard land prices) and
         prefectural land price surveys (benchmark land prices) point.
         See https://www.reinfolib.mlit.go.jp/help/apiManual/#titleApi8 for details.
@@ -137,9 +137,9 @@ class Client:
         :param year: target year.
         :param price_classification: Land price classification code.
           0: Land price public notices, 1: Prefectural land price surveys, Unspecified: Both 0 and 1.
-          Unspecified: Both transaction price information and contract price information.
         :param use_category_code: Use division code. See https://www.reinfolib.mlit.go.jp/help/apiManual/#titleApi8
-        :return:
+        :return: land price public notices (standard land prices) and
+        prefectural land price surveys (benchmark land prices) point. (Response format: GeoJson)
         """
         params = {"response_format": "geojson", "z": z, "x": x, "y": y, "year": year}
         if price_classification:
