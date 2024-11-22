@@ -23,7 +23,7 @@ keywords = ["real-estate", "api", "client"]
 Homepage = "https://github.com/matsudan/pyreinfolib"
 
 [build-system]
-requires = ["hatchling", "hatch-vcs"]
+requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.rye]
@@ -40,7 +40,7 @@ allow-direct-references = true
 packages = ["pyreinfolib"]
 
 [tool.hatch.version]
-source = "vcs"
+path = "pyreinfolib/__init__.py"
 
 [tool.ruff]
 line-length = 120
