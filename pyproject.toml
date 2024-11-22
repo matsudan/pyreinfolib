@@ -1,10 +1,10 @@
 [project]
 name = "pyreinfolib"
-version = "0.1.0"
 description = "Python client for Real Estate Information Library APIs"
 authors = [
     { name = "matsudan", email = "daaamatsun@gmail.com" }
 ]
+dynamic = ["version"]
 dependencies = [
     "requests",
 ]
@@ -23,7 +23,7 @@ keywords = ["real-estate", "api", "client"]
 Homepage = "https://github.com/matsudan/pyreinfolib"
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
 [tool.rye]
@@ -38,6 +38,9 @@ allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["pyreinfolib"]
+
+[tool.hatch.version]
+source = "vcs"
 
 [tool.ruff]
 line-length = 120
