@@ -26,4 +26,6 @@ jobs:
   publish:
     needs: release-please
     if: ${{ needs.release-please.outputs.release_created }}
+    permissions:
+      id-token: write
     uses: "./.github/workflows/publish.yml"
