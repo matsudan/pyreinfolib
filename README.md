@@ -4,8 +4,8 @@
 
 ## Installation
 
-```
-
+```shell
+pip install pyreinfolib
 ```
 
 ### Supported Python Versions
