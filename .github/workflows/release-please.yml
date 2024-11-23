@@ -12,6 +12,8 @@ permissions:
 jobs:
   release-please:
     runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
     steps:
       - name: release-please
         id: release
@@ -22,5 +24,6 @@ jobs:
           manifest-file: .github/.release-please-manifest.json
 
   publish:
-    if: ${{ steps.release.outputs.release_created }}
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created }}
     uses: "./.github/workflows/publish.yml"
