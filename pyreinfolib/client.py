@@ -148,3 +148,20 @@ class Client:
             params["useCategoryCode"] = ",".join(use_category_code)
 
         return self._get("XPT002", params)
+
+    def get_number_of_passengers_per_station(
+        self,
+        z: Literal[11,12,13,14,15],
+        x: int,
+        y: int,
+    ) -> dict:
+        """Get number of passengers per station.
+        See https://www.reinfolib.mlit.go.jp/help/apiManual/#titleApi20 for details.
+        :param z: Zoom level (scale). 11 (city) ~ 15 (detail)
+        :param x: x value of tile coordinates.
+        :param y: y value of tile coordinates.
+        :return: Number of passengers per station. (Response format: GeoJson)
+        """
+        params = {"response_format": "geojson", "z": z, "x": x, "y": y}
+
+        return self._get("XKT015", params)
