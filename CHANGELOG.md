@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0](https://github.com/matsudan/pyreinfolib/compare/v0.1.0...v0.2.0) (2024-11-28)
+
+
+### Features
+
+* add get_number_of_passengers_per_station method ([#12](https://github.com/matsudan/pyreinfolib/issues/12)) ([9eccf89](https://github.com/matsudan/pyreinfolib/commit/9eccf89e473b89cab77d7ee4ab4d2d7c439853a4))
+
 ## [0.1.0](https://github.com/matsudan/pyreinfolib/compare/v0.1.0...v0.1.0) (2024-11-23)
 
 
