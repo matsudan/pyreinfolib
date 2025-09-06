@@ -38,6 +38,7 @@ path = "pyreinfolib/__init__.py"
 [dependency-groups]
 dev = [
     "pytest>=8.4.2",
+    "pytest-cov>=6.3.0",
     "ruff>=0.12.12",
 ]
 
@@ -54,3 +55,6 @@ quote-style = "double"
 indent-style = "space"
 skip-magic-trailing-comma = false
 line-ending = "auto"
+
+[tool.pytest.ini_options]
+addopts = "-v --cov=pyreinfolib --cov-branch"
