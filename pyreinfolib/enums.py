@@ -27,6 +27,7 @@ class UseDivision(StrEnum):
     # 林地（都道府県地価調査）
     FOREST_LAND = "20"
 
+
 @unique
 class LandTypeCode(StrEnum):
     # 宅地(土地)
