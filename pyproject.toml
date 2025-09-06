@@ -37,8 +37,8 @@ path = "pyreinfolib/__init__.py"
 
 [dependency-groups]
 dev = [
-    "pytest>=8.3.5",
-    "ruff>=0.11.6",
+    "pytest>=8.4.2",
+    "ruff>=0.12.12",
 ]
 
 [tool.ruff]
@@ -47,8 +47,7 @@ indent-width = 4
 target-version = "py312"
 
 [tool.ruff.lint]
-select = ["F", "E", "W", "I", "Q"]
-fixable = ["ALL"]
+select = ["F", "E", "W", "I", "Q", "UP"]
 
 [tool.ruff.format]
 quote-style = "double"

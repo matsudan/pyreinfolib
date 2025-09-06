@@ -8,13 +8,13 @@ from pyreinfolib import enums
 
 logger = logging.getLogger(__name__)
 
+
 class Client:
     def __init__(self, api_key: str):
         self.api_key = api_key
         self.base_url = "https://www.reinfolib.mlit.go.jp/ex-api/external/"
 
     def _get(self, endpoint: str, params: dict = None) -> dict:
-
         api_url = urljoin(self.base_url, endpoint)
         headers = {"Ocp-Apim-Subscription-Key": self.api_key}
         try:
@@ -33,7 +33,7 @@ class Client:
         area: str = None,
         city: str = None,
         station: str = None,
-        language: Literal["ja", "en"] = None
+        language: Literal["ja", "en"] = None,
     ) -> dict:
         """Get real estate prices. See https://www.reinfolib.mlit.go.jp/help/apiManual/#titleApi4 for details.
         :param price_classification: Price classification code.
@@ -76,7 +76,7 @@ class Client:
 
         return self._get("XIT002", params)
 
-    def get_appraisal_reports(self, year: int, area: str, division: enums.UseDivision):
+    def get_appraisal_reports(self, year: int, area: str, division: enums.UseDivision) -> dict:
         """Get real estate appraisal reports.
         See https://www.reinfolib.mlit.go.jp/help/apiManual/#titleApi6 for details.
         :param year: Date of value.
@@ -121,7 +121,7 @@ class Client:
 
     def get_land_price_public_notices_and_surveys_point(
         self,
-        z: Literal[13,14,15],
+        z: Literal[13, 14, 15],
         x: int,
         y: int,
         year: int,
@@ -151,7 +151,7 @@ class Client:
 
     def get_number_of_passengers_per_station(
         self,
-        z: Literal[11,12,13,14,15],
+        z: Literal[11, 12, 13, 14, 15],
         x: int,
         y: int,
     ) -> dict:
