@@ -2,13 +2,33 @@ name: Publish Python distribution to PyPI
 
 on:
   workflow_call:
+    inputs:
+      ref:
+        description: "Git ref (tag/branch/SHA) to build from. Defaults to the ref that triggered the run."
+        type: string
+        required: false
+        default: ""
   workflow_dispatch:
+    inputs:
+      ref:
+        description: "Git ref (tag/branch/SHA) to build from. Defaults to the ref that triggered the run."
+        type: string
+        required: false
+        default: ""
+
+permissions:
+  contents: read
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      # NOTE: When this workflow is called from release-please.yml, the `github`
+      # context belongs to the caller (a push to main), so the tag created by
+      # release-please must be passed in explicitly via `inputs.ref`.
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -17,7 +37,7 @@ jobs:
 
       - name: Install build dependencies
         run: |
-          python -m pip install --upgrade pip 
+          python -m pip install --upgrade pip
           pip install hatch
 
       - name: Build package
@@ -31,7 +51,6 @@ jobs:
 
   publish-to-pypi:
     name: Publish distribution 📦 to PyPI
-    if: startsWith(github.ref, 'refs/tags/')  # only publish to PyPI on tag pushes
     needs:
       - build
     runs-on: ubuntu-latest
@@ -39,6 +58,7 @@ jobs:
       name: pypi
       url: https://pypi.org/p/pyreinfolib
     permissions:
+      contents: read
       id-token: write
     steps:
       - name: Download all the dists

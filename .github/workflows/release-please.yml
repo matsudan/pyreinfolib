@@ -14,6 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
     steps:
       - name: release-please
         id: release
@@ -25,7 +26,10 @@ jobs:
 
   publish:
     needs: release-please
-    if: ${{ needs.release-please.outputs.release_created }}
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
     permissions:
+      contents: read
       id-token: write
     uses: "./.github/workflows/publish.yml"
+    with:
+      ref: ${{ needs.release-please.outputs.tag_name }}
