@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/matsudan/pyreinfolib/compare/v0.2.0...v0.2.1) (2026-07-30)
+
+
+### Bug Fixes
+
+* fix release and publish and add lint  and test ci ([#17](https://github.com/matsudan/pyreinfolib/issues/17)) ([1e5acfd](https://github.com/matsudan/pyreinfolib/commit/1e5acfd07fad4876b9a33817b33423c79d23cf77))
+
 ## [0.2.0](https://github.com/matsudan/pyreinfolib/compare/v0.1.0...v0.2.0) (2024-11-28)
 
 
