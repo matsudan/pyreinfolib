@@ -32,6 +32,9 @@ allow-direct-references = true
 [tool.hatch.build.targets.wheel]
 packages = ["pyreinfolib"]
 
+[tool.hatch.build.targets.sdist]
+exclude = [".github"]
+
 [tool.hatch.version]
 path = "pyreinfolib/__init__.py"
 
