@@ -4,12 +4,26 @@ on:
   push:
     branches:
       - main
+  # Manual escape hatch: build and publish a tag that was already released
+  # (e.g. when a publish attempt failed and no new release will be cut).
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Git tag to build and publish, e.g. v0.2.1"
+        type: string
+        required: true
 
 # Deny by default; each job requests only the scopes it needs.
 permissions: {}
 
+# NOTE: The build and publish jobs are intentionally inlined here instead of
+# living in a reusable workflow. PyPI's Trusted Publishing mints tokens against
+# the `job_workflow_ref` claim but verifies PEP 740 attestations against the
+# caller's workflow, so a reusable workflow can never satisfy both checks.
+# See https://docs.pypi.org/trusted-publishers/troubleshooting/#reusable-workflows-on-github
 jobs:
   release-please:
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -26,12 +40,62 @@ jobs:
           config-file: .github/release-please-config.json
           manifest-file: .github/.release-please-manifest.json
 
-  publish:
+  build:
     needs: release-please
-    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    # release-please is skipped on workflow_dispatch, and a skipped dependency
+    # would normally skip this job too, hence `!cancelled()`.
+    if: >-
+      ${{ !cancelled()
+      && needs.release-please.result != 'failure'
+      && (needs.release-please.outputs.release_created == 'true'
+      || github.event_name == 'workflow_dispatch') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      # On push, build the tag release-please just created rather than the
+      # branch head. On workflow_dispatch, build the tag given as an input.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref || needs.release-please.outputs.tag_name }}
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.11'
+
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade 'pip==26.1.2'
+          pip install 'hatch==1.17.1'
+
+      - name: Build package
+        run: hatch build
+
+      - name: Store the distribution packages
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: python-package-distributions
+          path: dist/
+
+  publish-to-pypi:
+    name: Publish distribution 📦 to PyPI
+    needs:
+      - build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/pyreinfolib
     permissions:
       contents: read
       id-token: write
-    uses: "./.github/workflows/publish.yml"
-    with:
-      ref: ${{ needs.release-please.outputs.tag_name }}
+    steps:
+      - name: Download all the dists
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: python-package-distributions
+          path: dist/
+
+      - name: Publish distribution 📦 to PyPI
+        uses: pypa/gh-action-pypi-publish@ba38be9e461d3875417946c167d0b5f3d385a247 # v1.14.1
