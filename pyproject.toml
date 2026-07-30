@@ -39,6 +39,7 @@ path = "pyreinfolib/__init__.py"
 dev = [
     "pytest>=8.4.2",
     "pytest-cov>=6.3.0",
+    "responses>=0.25.8",
     "ruff>=0.12.12",
 ]
 
