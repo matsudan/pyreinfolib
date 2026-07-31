@@ -112,7 +112,7 @@ class Client:
 
     def get_real_estate_prices_point(
         self,
-        z: int,
+        z: Literal[11, 12, 13, 14, 15],
         x: int,
         y: int,
         period_from: int,
