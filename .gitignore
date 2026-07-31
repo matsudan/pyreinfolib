@@ -113,5 +113,8 @@ cython_debug/
 # InelliJ
 .idea/
 
+# Kiro
+.kiro/
+
 # MacOS
 .DS_Store

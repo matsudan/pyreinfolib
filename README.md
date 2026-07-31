@@ -104,6 +104,10 @@ except APIError as e:
 
 別の型にしてあるので、取り違えは型チェックで検出されます。誤ったコードを送った場合、API はエラーではなく絞り込まれた結果や空の結果を返すため、実行時には気づきにくい種類の間違いです。
 
+## Contributing
+
+メソッド名や enum メンバー名は、API 操作説明の API 名から機械的に導出しています。導出手順と訳語の用語集は [CONTRIBUTING.md](CONTRIBUTING.md) にあります。
+
 ## Author
 
 @matsudan (daaamatsun@gmail.com)
