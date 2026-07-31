@@ -1,6 +1,6 @@
 import logging
 from collections.abc import Sequence
-from typing import Literal
+from typing import Any, Literal
 from urllib.parse import urljoin
 
 import requests
@@ -35,7 +35,7 @@ class Client:
         self.base_url = "https://www.reinfolib.mlit.go.jp/ex-api/external/"
         self.timeout = timeout
 
-    def _get(self, endpoint: str, params: dict | None = None) -> dict:
+    def _get(self, endpoint: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
         api_url = urljoin(self.base_url, endpoint)
         headers = {"Ocp-Apim-Subscription-Key": self.api_key}
         try:
@@ -56,7 +56,7 @@ class Client:
         city: str | None = None,
         station: str | None = None,
         language: Literal["ja", "en"] | None = None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Get real estate prices. See https://www.reinfolib.mlit.go.jp/help/apiManual/#titleApi4 for details.
         :param price_classification: Price classification code.
           01: Real estate transaction price information, 02: Contract price information,
@@ -69,7 +69,7 @@ class Client:
         :param language: `ja` or `en`. If not specified, `ja`.
         :return: Real estate prices.
         """
-        params = {"year": year}
+        params: dict[str, Any] = {"year": year}
         if price_classification:
             params["priceClassification"] = price_classification
         if quarter:
@@ -85,20 +85,20 @@ class Client:
 
         return self._get("XIT001", params)
 
-    def get_municipalities(self, area: str, language: Literal["ja", "en"] | None = None) -> dict:
+    def get_municipalities(self, area: str, language: Literal["ja", "en"] | None = None) -> dict[str, Any]:
         """Get municipality (city/ward/town/village) list.
         See https://www.reinfolib.mlit.go.jp/help/apiManual/#titleApi5 for details.
         :param area: Prefecture code. See https://nlftp.mlit.go.jp/ksj/gml/codelist/PrefCd.html
         :param language: `ja` or `en`. If not specified, `ja`.
         :return: Municipality list.
         """
-        params = {"area": area}
+        params: dict[str, Any] = {"area": area}
         if language:
             params.update(language=language)
 
         return self._get("XIT002", params)
 
-    def get_appraisal_reports(self, year: int, area: str, division: enums.UseDivision) -> dict:
+    def get_appraisal_reports(self, year: int, area: str, division: enums.UseDivision) -> dict[str, Any]:
         """Get real estate appraisal reports.
         See https://www.reinfolib.mlit.go.jp/help/apiManual/#titleApi6 for details.
         :param year: Date of value.
@@ -106,7 +106,7 @@ class Client:
         :param division: Use division.
         :return: Real estate appraisal reports.
         """
-        params = {"year": year, "area": area, "division": division}
+        params: dict[str, Any] = {"year": year, "area": area, "division": division}
 
         return self._get("XCT001", params)
 
@@ -119,7 +119,7 @@ class Client:
         period_to: int,
         price_classification: Literal["01", "02"] | None = None,
         land_type_code: Sequence[enums.LandTypeCode] | enums.LandTypeCode | None = None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Get real estate prices point.
         See https://www.reinfolib.mlit.go.jp/help/apiManual/#titleApi7 for details.
         :param z: Zoom level (scale). 11 (city) ~ 15 (detail)
@@ -134,7 +134,14 @@ class Client:
           See https://www.reinfolib.mlit.go.jp/help/apiManual/#titleApi7
         :return: Real estate prices point. (Response format: GeoJson)
         """
-        params = {"response_format": "geojson", "z": z, "x": x, "y": y, "from": period_from, "to": period_to}
+        params: dict[str, Any] = {
+            "response_format": "geojson",
+            "z": z,
+            "x": x,
+            "y": y,
+            "from": period_from,
+            "to": period_to,
+        }
         if price_classification:
             params["priceClassification"] = price_classification
         if land_type_code:
@@ -150,7 +157,7 @@ class Client:
         year: int,
         price_classification: Literal["0", "1"] | None = None,
         use_category_code: Sequence[enums.UseDivision] | enums.UseDivision | None = None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Get land price public notices (standard land prices) and
         prefectural land price surveys (benchmark land prices) point.
         See https://www.reinfolib.mlit.go.jp/help/apiManual/#titleApi8 for details.
@@ -165,7 +172,7 @@ class Client:
         :return: land price public notices (standard land prices) and
         prefectural land price surveys (benchmark land prices) point. (Response format: GeoJson)
         """
-        params = {"response_format": "geojson", "z": z, "x": x, "y": y, "year": year}
+        params: dict[str, Any] = {"response_format": "geojson", "z": z, "x": x, "y": y, "year": year}
         if price_classification:
             params["priceClassification"] = price_classification
         if use_category_code:
@@ -178,7 +185,7 @@ class Client:
         z: Literal[11, 12, 13, 14, 15],
         x: int,
         y: int,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Get number of passengers per station.
         See https://www.reinfolib.mlit.go.jp/help/apiManual/#titleApi20 for details.
         :param z: Zoom level (scale). 11 (city) ~ 15 (detail)
@@ -186,6 +193,6 @@ class Client:
         :param y: y value of tile coordinates.
         :return: Number of passengers per station. (Response format: GeoJson)
         """
-        params = {"response_format": "geojson", "z": z, "x": x, "y": y}
+        params: dict[str, Any] = {"response_format": "geojson", "z": z, "x": x, "y": y}
 
         return self._get("XKT015", params)
