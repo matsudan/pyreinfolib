@@ -1,15 +1,25 @@
-import logging
 from collections.abc import Sequence
 from typing import Any, Literal
 from urllib.parse import urljoin
 
 import requests
 
-from pyreinfolib import enums
-
-logger = logging.getLogger(__name__)
+from pyreinfolib import enums, exceptions
 
 DEFAULT_TIMEOUT = 30.0
+
+# Statuses whose meaning the API documents. Anything else falls back to `APIError`, which
+# still carries the body, so the caller can read the API's own explanation.
+#
+# 403 is deliberately absent. The API manual does not mention it, and the gateway in front
+# of this API uses 401 for a missing or invalid subscription key while reserving 403 for an
+# exhausted call quota. Calling it an authentication failure would send the caller off to
+# check a key that is fine.
+_STATUS_TO_EXCEPTION: dict[int, type[exceptions.APIError]] = {
+    401: exceptions.AuthenticationError,
+    404: exceptions.NoResultsError,
+    429: exceptions.RateLimitError,
+}
 
 
 def _join_codes(codes: Sequence[str] | str) -> str:
@@ -42,16 +52,45 @@ class Client:
         self.timeout = timeout
 
     def _get(self, endpoint: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
+        """Issue a GET against `endpoint` and return the decoded JSON body.
+
+        :raises TransportError: If no response was obtained.
+        :raises AuthenticationError: If the API key was missing or rejected.
+        :raises NoResultsError: If the query matched no data.
+        :raises RateLimitError: If the API key sent too many requests.
+        :raises InvalidResponseError: If the body was not valid JSON.
+        :raises APIError: For any other error status.
+        """
         api_url = urljoin(self.base_url, endpoint)
         headers = {"Ocp-Apim-Subscription-Key": self.api_key}
+
+        # Each failure mode gets its own `try`. Wrapping the whole exchange in one block
+        # would have to re-derive which stage failed from the exception type, which is how
+        # the previous version came to dereference a `response` that connection errors and
+        # timeouts do not have.
         try:
             r = requests.get(api_url, headers=headers, params=params, timeout=self.timeout)
-            r.raise_for_status()
-            return r.json()
         except requests.RequestException as e:
-            detail = e.response.text if e.response is not None else str(e)
-            logger.error("Request failed for %s with error: %s", api_url, detail)
-            raise
+            raise exceptions.TransportError(f"Request to {api_url} failed: {e}") from e
+
+        if not r.ok:
+            error = _STATUS_TO_EXCEPTION.get(r.status_code, exceptions.APIError)
+            raise error(
+                f"{r.status_code} {r.reason} for {r.url}: {r.text}",
+                status_code=r.status_code,
+                response_body=r.text,
+                url=r.url,
+            )
+
+        try:
+            return r.json()
+        except requests.exceptions.JSONDecodeError as e:
+            raise exceptions.InvalidResponseError(
+                f"Response from {r.url} was not valid JSON: {e}",
+                status_code=r.status_code,
+                response_body=r.text,
+                url=r.url,
+            ) from e
 
     def get_real_estate_prices(
         self,
@@ -74,6 +113,7 @@ class Client:
         :param station: Station code. See https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-N02-v3_1.html
         :param language: `ja` or `en`. If not specified, `ja`.
         :return: Real estate prices.
+        :raises NoResultsError: If no transaction matches the given period and area.
         """
         params: dict[str, Any] = {"year": year}
         if price_classification:
@@ -97,6 +137,7 @@ class Client:
         :param area: Prefecture code. See https://nlftp.mlit.go.jp/ksj/gml/codelist/PrefCd.html
         :param language: `ja` or `en`. If not specified, `ja`.
         :return: Municipality list.
+        :raises NoResultsError: If the prefecture code matches no municipality.
         """
         params: dict[str, Any] = {"area": area}
         if language:
@@ -111,6 +152,7 @@ class Client:
         :param area: Prefecture code.
         :param division: Use division.
         :return: Real estate appraisal reports.
+        :raises NoResultsError: If no appraisal report matches the given year and area.
         """
         params: dict[str, Any] = {"year": year, "area": area, "division": division}
 

@@ -1,4 +1,3 @@
-import logging
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
@@ -9,6 +8,15 @@ import responses
 
 from pyreinfolib import Client
 from pyreinfolib.enums import LandTypeCode, UseDivision
+from pyreinfolib.exceptions import (
+    APIError,
+    AuthenticationError,
+    InvalidResponseError,
+    NoResultsError,
+    RateLimitError,
+    ReinfolibError,
+    TransportError,
+)
 
 BASE_URL = "https://www.reinfolib.mlit.go.jp/ex-api/external/"
 API_KEY = "dummy"
@@ -106,27 +114,51 @@ class TestClient:
         expected = DEFAULT_TIMEOUT if timeout is None else timeout
         assert mock_api.calls[0].request.req_kwargs["timeout"] == expected
 
-    @pytest.mark.parametrize("status", [400, 404, 500])
-    def test__get_raises_on_error_status(self, mock_api, client, status):
-        mock_api.get(f"{BASE_URL}TEST999", json={"message": "検索結果がありません。"}, status=status)
+    @pytest.mark.parametrize(
+        ("status", "expected"),
+        [
+            (400, APIError),
+            (401, AuthenticationError),
+            # Not AuthenticationError: the gateway uses 403 for an exhausted call quota,
+            # and the API manual documents no meaning for it either way.
+            (403, APIError),
+            (404, NoResultsError),
+            (429, RateLimitError),
+            (500, APIError),
+            (503, APIError),
+        ],
+    )
+    def test__get_maps_error_status_to_a_specific_exception(self, mock_api, client, status, expected):
+        mock_api.get(f"{BASE_URL}TEST999", json={"message": "error"}, status=status)
 
-        with pytest.raises(requests.RequestException):
+        with pytest.raises(expected) as exc_info:
             client._get("TEST999", {"param1": "value1"})
 
-    def test__get_logs_response_body_on_error_status(self, mock_api, client, caplog):
-        # Registered as a raw body rather than `json=`, which would escape the non-ASCII
-        # characters and no longer match what the API actually returns.
+        # `pytest.raises(expected)` would also accept a subclass, so pin the exact type:
+        # mapping 500 onto `NoResultsError`, say, would otherwise pass as an `APIError`.
+        assert type(exc_info.value) is expected
+        assert exc_info.value.status_code == status
+
+    def test__get_error_carries_the_response_body(self, mock_api, client):
+        """The API explains itself in the body; discarding it leaves nothing to debug.
+
+        Registered as a raw body rather than `json=`, which would escape the non-ASCII
+        characters and no longer match what the API actually returns.
+        """
         mock_api.get(
             f"{BASE_URL}TEST999",
             body='{"message":"検索結果がありません。"}',
             content_type="application/json",
-            status=400,
+            status=404,
         )
 
-        with caplog.at_level(logging.ERROR, logger="pyreinfolib.client"), pytest.raises(requests.RequestException):
+        with pytest.raises(NoResultsError) as exc_info:
             client._get("TEST999")
 
-        assert "検索結果がありません。" in caplog.text
+        error = exc_info.value
+        assert error.response_body == '{"message":"検索結果がありません。"}'
+        assert error.url == f"{BASE_URL}TEST999"
+        assert "検索結果がありません。" in str(error)
 
     @pytest.mark.parametrize(
         "raised",
@@ -136,29 +168,40 @@ class TestClient:
         ],
         ids=lambda exc: type(exc).__name__,
     )
-    def test__get_propagates_errors_that_carry_no_response(self, mock_api, client, caplog, raised):
-        """`e.response` is None here, so the handler must not dereference it.
+    def test__get_wraps_failures_that_carry_no_response(self, mock_api, client, raised):
+        """These never produced a response, so they cannot become an `APIError`.
 
-        Dereferencing it replaced the real cause with `AttributeError: 'NoneType' object
-        has no attribute 'text'`, which is exactly the case one needs to debug.
+        An earlier version dereferenced `e.response.text` unconditionally and replaced the
+        real cause with `AttributeError: 'NoneType' object has no attribute 'text'`, which
+        is exactly the case one needs to debug.
         """
         mock_api.get(f"{BASE_URL}TEST001", body=raised)
 
-        with caplog.at_level(logging.ERROR, logger="pyreinfolib.client"), pytest.raises(type(raised)) as exc_info:
+        with pytest.raises(TransportError) as exc_info:
             client._get("TEST001")
 
-        assert exc_info.value.response is None
-        assert str(raised) in caplog.text
+        # The original exception stays reachable for anyone who needs the transport detail.
+        assert exc_info.value.__cause__ is raised
+        assert str(raised) in str(exc_info.value)
 
-    def test__get_propagates_json_decode_error(self, mock_api, client, caplog):
-        """A 200 response with a non-JSON body (a maintenance page, say) also has no `response`."""
+    def test__get_rejects_a_success_response_that_is_not_json(self, mock_api, client):
+        """A maintenance page served with HTTP 200 must not surface as a `requests` error."""
         mock_api.get(f"{BASE_URL}TEST001", body="<html>maintenance</html>", content_type="text/html")
 
-        with caplog.at_level(logging.ERROR, logger="pyreinfolib.client"):
-            with pytest.raises(requests.exceptions.JSONDecodeError):
-                client._get("TEST001")
+        with pytest.raises(InvalidResponseError) as exc_info:
+            client._get("TEST001")
 
-        assert f"Request failed for {BASE_URL}TEST001" in caplog.text
+        error = exc_info.value
+        assert error.status_code == 200
+        assert error.response_body == "<html>maintenance</html>"
+
+    @pytest.mark.parametrize("status", [404, 500])
+    def test__get_does_not_leak_requests_exceptions(self, mock_api, client, status):
+        """Catching `ReinfolibError` alone must be enough, with no import of `requests`."""
+        mock_api.get(f"{BASE_URL}TEST999", json={"message": "error"}, status=status)
+
+        with pytest.raises(ReinfolibError):
+            client._get("TEST999")
 
     @pytest.mark.parametrize(
         "case",
@@ -388,3 +431,28 @@ class TestClient:
     )
     def test_get_number_of_passengers_per_station(self, mock_api, client, case):
         assert_request(mock_api, client.get_number_of_passengers_per_station, "XKT015", case)
+
+
+class TestExceptions:
+    """The shape of the hierarchy is public API: callers catch these instead of `requests`."""
+
+    @pytest.mark.parametrize(
+        "exc",
+        [APIError, AuthenticationError, InvalidResponseError, NoResultsError, RateLimitError, TransportError],
+        ids=lambda exc: exc.__name__,
+    )
+    def test_every_exception_derives_from_reinfolib_error(self, exc):
+        assert issubclass(exc, ReinfolibError)
+
+    @pytest.mark.parametrize(
+        "exc",
+        [AuthenticationError, InvalidResponseError, NoResultsError, RateLimitError],
+        ids=lambda exc: exc.__name__,
+    )
+    def test_response_bearing_exceptions_are_catchable_as_api_error(self, exc):
+        """One `except APIError` has to cover every failure that came back with a status."""
+        assert issubclass(exc, APIError)
+
+    def test_transport_error_is_not_an_api_error(self):
+        """It has no status code, so code that reads `status_code` must not catch it."""
+        assert not issubclass(TransportError, APIError)
