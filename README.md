@@ -15,10 +15,13 @@ Python >= 3.11
 ## Usage
 
 ```python
+import os
+
 from pyreinfolib import Client
 
-client = Client(api_key="<your api key>")
+client = Client(api_key=os.environ["REINFOLIB_API_KEY"])
 ```
+
 
 ## Example
 

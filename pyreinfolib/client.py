@@ -30,7 +30,13 @@ class Client:
         :param api_key: API key issued for the Real Estate Information Library.
         :param timeout: Request timeout in seconds, passed straight to `requests`.
           A single value applies to both connect and read, or pass a `(connect, read)` tuple.
+        :raises ValueError: If `api_key` is empty.
         """
+        # Reject it here rather than on the first request, where an empty or missing key
+        # surfaces as a 401 that gives no hint about the actual cause.
+        if not api_key:
+            raise ValueError("`api_key` must be a non-empty string.")
+
         self.api_key = api_key
         self.base_url = "https://www.reinfolib.mlit.go.jp/ex-api/external/"
         self.timeout = timeout
