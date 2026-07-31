@@ -7,7 +7,7 @@ import requests
 import responses
 
 from pyreinfolib import Client
-from pyreinfolib.enums import LandTypeCode, UseDivision
+from pyreinfolib.enums import LandPriceClassification, LandTypeCode, PriceClassification, UseDivision
 from pyreinfolib.exceptions import (
     APIError,
     AuthenticationError,
@@ -210,7 +210,7 @@ class TestClient:
                 id="all params",
                 args={
                     "year": 2025,
-                    "price_classification": "01",
+                    "price_classification": PriceClassification.REAL_ESTATE_TRANSACTION_PRICE,
                     "quarter": 1,
                     "area": "13",
                     "city": "13109",
@@ -287,7 +287,7 @@ class TestClient:
                     "y": 806,
                     "period_from": 20241,
                     "period_to": 20242,
-                    "price_classification": "01",
+                    "price_classification": PriceClassification.REAL_ESTATE_TRANSACTION_PRICE,
                     "land_type_code": [LandTypeCode.LAND, LandTypeCode.FOREST_LAND],
                 },
                 expected_params={
@@ -405,7 +405,7 @@ class TestClient:
                     "x": 7312,
                     "y": 3008,
                     "year": 2020,
-                    "price_classification": "0",
+                    "price_classification": LandPriceClassification.LAND_PRICE_PUBLIC_NOTICE,
                     "use_category_code": [UseDivision.RESIDENTIAL_LAND, UseDivision.COMMERCIAL_LAND],
                 },
                 expected_params={
@@ -527,3 +527,20 @@ class TestExceptions:
     def test_transport_error_is_not_an_api_error(self):
         """It has no status code, so code that reads `status_code` must not catch it."""
         assert not issubclass(TransportError, APIError)
+
+
+class TestEnums:
+    def test_the_two_price_classification_tables_stay_distinct(self):
+        """XPT002 numbers its codes from `0`, XIT001 and XPT001 from `01`.
+
+        The API spells the parameter `priceClassification` in all three, which invites
+        folding the two tables into one enum. Sending `01` where `0` is expected is answered
+        with a filtered or empty result rather than an error, so the mistake would not
+        surface at the call site.
+        """
+        price_codes = {member.value for member in PriceClassification}
+        land_price_codes = {member.value for member in LandPriceClassification}
+
+        assert price_codes == {"01", "02"}
+        assert land_price_codes == {"0", "1"}
+        assert not price_codes & land_price_codes

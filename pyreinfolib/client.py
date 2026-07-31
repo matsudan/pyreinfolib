@@ -150,7 +150,7 @@ class Client:
     def get_real_estate_prices(
         self,
         year: int,
-        price_classification: Literal["01", "02"] | None = None,
+        price_classification: enums.PriceClassification | None = None,
         quarter: Literal[1, 2, 3, 4] | None = None,
         area: str | None = None,
         city: str | None = None,
@@ -158,9 +158,8 @@ class Client:
         language: Literal["ja", "en"] | None = None,
     ) -> dict[str, Any]:
         """Get real estate prices. See https://www.reinfolib.mlit.go.jp/help/apiManual/#titleApi4 for details.
-        :param price_classification: Price classification code.
-          01: Real estate transaction price information, 02: Contract price information,
-          Unspecified: Both transaction price information and contract price information.
+        :param price_classification: Price classification.
+          If not specified, both real estate transaction prices and contract prices.
         :param year: Transaction period (Year).
         :param quarter: Transaction period (Quarter). 1: Jan.~Mar. 2: Apr.~Jun. 3: Jul.~Sep. 4: Oct.~Dec.
         :param area: Prefecture code. See https://nlftp.mlit.go.jp/ksj/gml/codelist/PrefCd.html
@@ -216,7 +215,7 @@ class Client:
         y: int,
         period_from: int,
         period_to: int,
-        price_classification: Literal["01", "02"] | None = None,
+        price_classification: enums.PriceClassification | None = None,
         land_type_code: Sequence[enums.LandTypeCode] | enums.LandTypeCode | None = None,
     ) -> dict[str, Any]:
         """Get real estate prices point.
@@ -226,9 +225,8 @@ class Client:
         :param y: y value of tile coordinates.
         :param period_from: Transaction period from. Format: YYYYN. e.g. 20241
         :param period_to: Transaction period to. Format: YYYYN. e.g. 20242
-        :param price_classification: Price classification code.
-          01: Real estate transaction price information, 02: Contract price information,
-          Unspecified: Both transaction price information and contract price information.
+        :param price_classification: Price classification.
+          If not specified, both real estate transaction prices and contract prices.
         :param land_type_code: One land type code, or a sequence of them.
           See https://www.reinfolib.mlit.go.jp/help/apiManual/#titleApi7
         :return: Real estate prices point. (Response format: GeoJson)
@@ -252,7 +250,7 @@ class Client:
         x: int,
         y: int,
         year: int,
-        price_classification: Literal["0", "1"] | None = None,
+        price_classification: enums.LandPriceClassification | None = None,
         use_category_code: Sequence[enums.UseDivision] | enums.UseDivision | None = None,
     ) -> dict[str, Any]:
         """Get land price public notices (standard land prices) and
@@ -262,8 +260,10 @@ class Client:
         :param x: x value of tile coordinates.
         :param y: y value of tile coordinates.
         :param year: target year.
-        :param price_classification: Land price classification code.
-          0: Land price public notices, 1: Prefectural land price surveys, Unspecified: Both 0 and 1.
+        :param price_classification: Land price classification. Note that this is
+          `LandPriceClassification`, a different code table from the `PriceClassification`
+          the real estate price endpoints take. If not specified, both land price public
+          notices and prefectural land price surveys.
         :param use_category_code: One use division code, or a sequence of them.
           See https://www.reinfolib.mlit.go.jp/help/apiManual/#titleApi8
         :return: land price public notices (standard land prices) and
