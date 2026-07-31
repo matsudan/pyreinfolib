@@ -54,7 +54,9 @@ jobs:
           requireScope: false
           # Keep CHANGELOG entries uniform: every existing entry starts lowercase.
           subjectPattern: ^(?![A-Z]).+$
-          subjectPatternError: |
+          # Folded, not literal: GitHub truncates an `::error::` annotation at the first
+          # newline, which would hide everything after "should start".
+          subjectPatternError: >-
             The subject "{subject}" found in the pull request title "{title}" should start
             with a lowercase character, so that it reads consistently with the other
             entries in CHANGELOG.md.
