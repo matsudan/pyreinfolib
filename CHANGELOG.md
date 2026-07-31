@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.0](https://github.com/matsudan/pyreinfolib/compare/v0.2.1...v0.3.0) (2026-07-31)
+
+
+### Features
+
+* add request timeout and fix error handling for responseless failures ([#27](https://github.com/matsudan/pyreinfolib/issues/27)) ([b0ac782](https://github.com/matsudan/pyreinfolib/commit/b0ac782f1d621ad04f76f34a0dd35b2e6a738503))
+* ship type information (PEP 561) ([#30](https://github.com/matsudan/pyreinfolib/issues/30)) ([419458a](https://github.com/matsudan/pyreinfolib/commit/419458a8ae74e4c86826d21980d9a94970c1b14f))
+
 ## [0.2.1](https://github.com/matsudan/pyreinfolib/compare/v0.2.0...v0.2.1) (2026-07-30)
 
 
