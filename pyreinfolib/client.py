@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Sequence
 from typing import Literal
 from urllib.parse import urljoin
 
@@ -8,21 +9,42 @@ from pyreinfolib import enums
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_TIMEOUT = 30.0
+
+
+def _join_codes(codes: Sequence[str] | str) -> str:
+    """Serialize one or more codes into the comma separated form the API expects.
+
+    A bare string (a `StrEnum` member included) is passed through unchanged. Without this,
+    forgetting to wrap a single code in a list would silently send `0,7` instead of `07`,
+    because `",".join()` treats the string as a sequence of characters.
+    """
+    if isinstance(codes, str):
+        return codes
+    return ",".join(codes)
+
 
 class Client:
-    def __init__(self, api_key: str):
+    def __init__(self, api_key: str, timeout: float | tuple[float, float] = DEFAULT_TIMEOUT) -> None:
+        """
+        :param api_key: API key issued for the Real Estate Information Library.
+        :param timeout: Request timeout in seconds, passed straight to `requests`.
+          A single value applies to both connect and read, or pass a `(connect, read)` tuple.
+        """
         self.api_key = api_key
         self.base_url = "https://www.reinfolib.mlit.go.jp/ex-api/external/"
+        self.timeout = timeout
 
     def _get(self, endpoint: str, params: dict = None) -> dict:
         api_url = urljoin(self.base_url, endpoint)
         headers = {"Ocp-Apim-Subscription-Key": self.api_key}
         try:
-            r = requests.get(api_url, headers=headers, params=params)
+            r = requests.get(api_url, headers=headers, params=params, timeout=self.timeout)
             r.raise_for_status()
             return r.json()
         except requests.RequestException as e:
-            logger.error(f"Request failed for {api_url} with error: {e.response.text}")
+            detail = e.response.text if e.response is not None else str(e)
+            logger.error("Request failed for %s with error: %s", api_url, detail)
             raise
 
     def get_real_estate_prices(
@@ -96,7 +118,7 @@ class Client:
         period_from: int,
         period_to: int,
         price_classification: Literal["01", "02"] = None,
-        land_type_code: list[enums.LandTypeCode] = None,
+        land_type_code: Sequence[enums.LandTypeCode] | enums.LandTypeCode = None,
     ) -> dict:
         """Get real estate prices point.
         See https://www.reinfolib.mlit.go.jp/help/apiManual/#titleApi7 for details.
@@ -108,14 +130,15 @@ class Client:
         :param price_classification: Price classification code.
           01: Real estate transaction price information, 02: Contract price information,
           Unspecified: Both transaction price information and contract price information.
-        :param land_type_code: Land type code. See https://www.reinfolib.mlit.go.jp/help/apiManual/#titleApi7
+        :param land_type_code: One land type code, or a sequence of them.
+          See https://www.reinfolib.mlit.go.jp/help/apiManual/#titleApi7
         :return: Real estate prices point. (Response format: GeoJson)
         """
         params = {"response_format": "geojson", "z": z, "x": x, "y": y, "from": period_from, "to": period_to}
         if price_classification:
             params["priceClassification"] = price_classification
         if land_type_code:
-            params["landTypeCode"] = ",".join(land_type_code)
+            params["landTypeCode"] = _join_codes(land_type_code)
 
         return self._get("XPT001", params)
 
@@ -126,7 +149,7 @@ class Client:
         y: int,
         year: int,
         price_classification: Literal["0", "1"] = None,
-        use_category_code: list[enums.UseDivision] = None,
+        use_category_code: Sequence[enums.UseDivision] | enums.UseDivision = None,
     ) -> dict:
         """Get land price public notices (standard land prices) and
         prefectural land price surveys (benchmark land prices) point.
@@ -137,7 +160,8 @@ class Client:
         :param year: target year.
         :param price_classification: Land price classification code.
           0: Land price public notices, 1: Prefectural land price surveys, Unspecified: Both 0 and 1.
-        :param use_category_code: Use division code. See https://www.reinfolib.mlit.go.jp/help/apiManual/#titleApi8
+        :param use_category_code: One use division code, or a sequence of them.
+          See https://www.reinfolib.mlit.go.jp/help/apiManual/#titleApi8
         :return: land price public notices (standard land prices) and
         prefectural land price surveys (benchmark land prices) point. (Response format: GeoJson)
         """
@@ -145,7 +169,7 @@ class Client:
         if price_classification:
             params["priceClassification"] = price_classification
         if use_category_code:
-            params["useCategoryCode"] = ",".join(use_category_code)
+            params["useCategoryCode"] = _join_codes(use_category_code)
 
         return self._get("XPT002", params)
 
