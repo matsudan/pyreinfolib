@@ -39,6 +39,49 @@ from pyreinfolib.enums import UseDivision
 client.get_appraisal_reports(year=2024, area="13", division=UseDivision.INDUSTRIAL_LAND)
 ```
 
+## Error handling
+
+このライブラリが送出する例外はすべて `ReinfolibError` を継承しています。`requests` を import せずに捕捉できます。
+
+```
+ReinfolibError
+├── TransportError          レスポンスを得られなかった（接続失敗・タイムアウト）
+└── APIError                レスポンスは返ったが利用できない（status_code / response_body / url を持つ）
+    ├── AuthenticationError APIキーが未指定または拒否された（401）
+    ├── NoResultsError      検索結果が0件（404）
+    ├── RateLimitError      同一APIキーからのリクエストが多すぎる（429）
+    └── InvalidResponseError レスポンスがJSONではなかった
+```
+
+### 検索結果が0件のとき
+
+タイル座標を取らない3つのAPI（`get_real_estate_prices`、`get_municipalities`、`get_appraisal_reports`）は、条件に合致するデータが無い場合に空の結果ではなく **HTTP 404** を返します（[API操作説明](https://www.reinfolib.mlit.go.jp/help/apiManual/)の3章 Q.8）。このライブラリではこれを `NoResultsError` として送出します。
+
+```python
+from pyreinfolib import Client, NoResultsError
+
+client = Client(api_key=...)
+try:
+    prices = client.get_real_estate_prices(year=2024, city="13109")
+except NoResultsError:
+    prices = {"data": []}
+```
+
+タイル座標を取るAPIは0件でも200と空のフィーチャ一覧を返すため、`NoResultsError` は発生しません。
+
+### 失敗の詳細を見る
+
+`APIError` とそのサブクラスは、APIが返した本文を保持しています。
+
+```python
+from pyreinfolib import APIError
+
+try:
+    client.get_municipalities(area="99")
+except APIError as e:
+    print(e.status_code, e.response_body, e.url)
+```
+
 ## Typing
 
 型情報を同梱しています（[PEP 561](https://peps.python.org/pep-0561/)）。
