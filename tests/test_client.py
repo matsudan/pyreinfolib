@@ -467,6 +467,42 @@ class TestClient:
     def test_get_number_of_passengers_per_station(self, mock_api, client, case):
         assert_request(mock_api, client.get_number_of_passengers_per_station, "XKT015", case)
 
+    @pytest.mark.parametrize(
+        ("method_name", "endpoint", "args"),
+        [
+            (
+                "get_real_estate_prices_point",
+                "XPT001",
+                {"z": 11, "x": 1819, "y": 806, "period_from": 20241, "period_to": 20241},
+            ),
+            (
+                "get_land_price_public_notices_and_surveys_point",
+                "XPT002",
+                {"z": 13, "x": 7312, "y": 3008, "year": 2020},
+            ),
+            (
+                "get_number_of_passengers_per_station",
+                "XKT015",
+                {"z": 11, "x": 1819, "y": 806},
+            ),
+        ],
+        ids=["XPT001", "XPT002", "XKT015"],
+    )
+    def test_tile_endpoints_all_send_the_shared_parameters(self, mock_api, client, method_name, endpoint, args):
+        """Asserted across methods rather than per method, because the keys now come from
+        one place. Most of the API is addressed by tile, so a mistake in `_get_tile` would
+        otherwise have to be caught separately for every endpoint added on top of it.
+        """
+        mock_api.get(f"{BASE_URL}{endpoint}", json=DUMMY_RESPONSE)
+
+        getattr(client, method_name)(**args)
+
+        params = mock_api.calls[0].request.params
+        assert params["response_format"] == "geojson"
+        assert params["z"] == str(args["z"])
+        assert params["x"] == str(args["x"])
+        assert params["y"] == str(args["y"])
+
 
 class TestExceptions:
     """The shape of the hierarchy is public API: callers catch these instead of `requests`."""

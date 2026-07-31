@@ -110,6 +110,43 @@ class Client:
                 url=r.url,
             ) from e
 
+    def _get_tile(
+        self,
+        endpoint: str,
+        z: int,
+        x: int,
+        y: int,
+        params: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Issue a GET against an endpoint addressed by XYZ tile coordinates.
+
+        Most of the published API is addressed this way: `response_format`, `z`, `x` and `y`
+        are all these endpoints have in common, and many accept nothing else. Keeping the
+        shared part here leaves each public method as its docstring plus the handful of
+        parameters that are actually its own.
+
+        `params` is passed as a dict rather than as keyword arguments because two of the
+        keys the API expects, `from` and `to`, are Python keywords.
+
+        `z` is a plain `int` here. The zoom levels each endpoint accepts differ, so the
+        narrow `Literal` belongs on the public method that documents them.
+
+        :param endpoint: Endpoint id, e.g. `XKT015`.
+        :param z: Zoom level (scale).
+        :param x: x value of tile coordinates.
+        :param y: y value of tile coordinates.
+        :param params: Any further query parameters, keyed as the API expects them.
+        :return: The decoded JSON body.
+        """
+        # GeoJson rather than PBF: PBF would need a decoder, and a binary vector tile is not
+        # what a Python caller expecting a dict is after.
+        tile_params: dict[str, Any] = {"response_format": "geojson", "z": z, "x": x, "y": y}
+
+        # Merged so that the shared keys win. A caller has no reason to override them -- it
+        # already passes the coordinates as arguments -- so a collision means a typo in the
+        # `params` dict, and silently honouring it would request the wrong tile.
+        return self._get(endpoint, _compact((params or {}) | tile_params))
+
     def get_real_estate_prices(
         self,
         year: int,
@@ -196,20 +233,18 @@ class Client:
           See https://www.reinfolib.mlit.go.jp/help/apiManual/#titleApi7
         :return: Real estate prices point. (Response format: GeoJson)
         """
-        params = _compact(
+        return self._get_tile(
+            "XPT001",
+            z,
+            x,
+            y,
             {
-                "response_format": "geojson",
-                "z": z,
-                "x": x,
-                "y": y,
                 "from": period_from,
                 "to": period_to,
                 "priceClassification": price_classification,
                 "landTypeCode": _join_codes(land_type_code),
-            }
+            },
         )
-
-        return self._get("XPT001", params)
 
     def get_land_price_public_notices_and_surveys_point(
         self,
@@ -234,19 +269,17 @@ class Client:
         :return: land price public notices (standard land prices) and
         prefectural land price surveys (benchmark land prices) point. (Response format: GeoJson)
         """
-        params = _compact(
+        return self._get_tile(
+            "XPT002",
+            z,
+            x,
+            y,
             {
-                "response_format": "geojson",
-                "z": z,
-                "x": x,
-                "y": y,
                 "year": year,
                 "priceClassification": price_classification,
                 "useCategoryCode": _join_codes(use_category_code),
-            }
+            },
         )
-
-        return self._get("XPT002", params)
 
     def get_number_of_passengers_per_station(
         self,
@@ -261,6 +294,4 @@ class Client:
         :param y: y value of tile coordinates.
         :return: Number of passengers per station. (Response format: GeoJson)
         """
-        params: dict[str, Any] = {"response_format": "geojson", "z": z, "x": x, "y": y}
-
-        return self._get("XKT015", params)
+        return self._get_tile("XKT015", z, x, y)
