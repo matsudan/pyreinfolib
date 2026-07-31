@@ -70,6 +70,12 @@ class TestClient:
         assert Client(api_key="dummy", timeout=5).timeout == 5
         assert Client(api_key="dummy", timeout=(3.0, 10.0)).timeout == (3.0, 10.0)
 
+    @pytest.mark.parametrize("api_key", ["", None], ids=["empty string", "None"])
+    def test_init_rejects_an_empty_api_key(self, api_key):
+        """`None` covers `Client(os.getenv("TYPO"))`, which would otherwise only fail as a 401."""
+        with pytest.raises(ValueError, match="api_key"):
+            Client(api_key=api_key)
+
     def test__get(self, mock_api, client):
         expected = {"status": "OK", "data": [{"test": "value"}]}
         mock_api.get(f"{BASE_URL}TEST001", json=expected)
