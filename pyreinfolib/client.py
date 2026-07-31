@@ -35,7 +35,7 @@ class Client:
         self.base_url = "https://www.reinfolib.mlit.go.jp/ex-api/external/"
         self.timeout = timeout
 
-    def _get(self, endpoint: str, params: dict = None) -> dict:
+    def _get(self, endpoint: str, params: dict | None = None) -> dict:
         api_url = urljoin(self.base_url, endpoint)
         headers = {"Ocp-Apim-Subscription-Key": self.api_key}
         try:
@@ -50,12 +50,12 @@ class Client:
     def get_real_estate_prices(
         self,
         year: int,
-        price_classification: Literal["01", "02"] = None,
-        quarter: Literal[1, 2, 3, 4] = None,
-        area: str = None,
-        city: str = None,
-        station: str = None,
-        language: Literal["ja", "en"] = None,
+        price_classification: Literal["01", "02"] | None = None,
+        quarter: Literal[1, 2, 3, 4] | None = None,
+        area: str | None = None,
+        city: str | None = None,
+        station: str | None = None,
+        language: Literal["ja", "en"] | None = None,
     ) -> dict:
         """Get real estate prices. See https://www.reinfolib.mlit.go.jp/help/apiManual/#titleApi4 for details.
         :param price_classification: Price classification code.
@@ -85,7 +85,7 @@ class Client:
 
         return self._get("XIT001", params)
 
-    def get_municipalities(self, area: str, language: Literal["ja", "en"] = None) -> dict:
+    def get_municipalities(self, area: str, language: Literal["ja", "en"] | None = None) -> dict:
         """Get municipality (city/ward/town/village) list.
         See https://www.reinfolib.mlit.go.jp/help/apiManual/#titleApi5 for details.
         :param area: Prefecture code. See https://nlftp.mlit.go.jp/ksj/gml/codelist/PrefCd.html
@@ -117,8 +117,8 @@ class Client:
         y: int,
         period_from: int,
         period_to: int,
-        price_classification: Literal["01", "02"] = None,
-        land_type_code: Sequence[enums.LandTypeCode] | enums.LandTypeCode = None,
+        price_classification: Literal["01", "02"] | None = None,
+        land_type_code: Sequence[enums.LandTypeCode] | enums.LandTypeCode | None = None,
     ) -> dict:
         """Get real estate prices point.
         See https://www.reinfolib.mlit.go.jp/help/apiManual/#titleApi7 for details.
@@ -148,8 +148,8 @@ class Client:
         x: int,
         y: int,
         year: int,
-        price_classification: Literal["0", "1"] = None,
-        use_category_code: Sequence[enums.UseDivision] | enums.UseDivision = None,
+        price_classification: Literal["0", "1"] | None = None,
+        use_category_code: Sequence[enums.UseDivision] | enums.UseDivision | None = None,
     ) -> dict:
         """Get land price public notices (standard land prices) and
         prefectural land price surveys (benchmark land prices) point.

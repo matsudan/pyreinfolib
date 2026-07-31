@@ -52,7 +52,17 @@ indent-width = 4
 target-version = "py312"
 
 [tool.ruff.lint]
-select = ["F", "E", "W", "I", "Q", "UP"]
+select = ["F", "E", "W", "I", "Q", "UP", "RUF", "S"]
+ignore = [
+    # Full-width punctuation is intentional in the Japanese comments and docstrings.
+    "RUF001",
+    "RUF002",
+    "RUF003",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# pytest rewrites plain asserts, so S101 is not actionable in tests.
+"tests/**" = ["S101"]
 
 [tool.ruff.format]
 quote-style = "double"
