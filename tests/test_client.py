@@ -233,7 +233,7 @@ class TestClient:
                 expected_params={"year": "2025"},
             ),
             RequestCase(
-                id="optional params are omitted when falsy",
+                id="omitted and empty optional params are absent from the query",
                 args={"year": 2025, "price_classification": None, "quarter": None, "city": ""},
                 expected_params={"year": "2025"},
             ),
@@ -348,6 +348,41 @@ class TestClient:
                 expected_params={
                     "response_format": "geojson",
                     "z": "11",
+                    "x": "1819",
+                    "y": "806",
+                    "from": "20241",
+                    "to": "20241",
+                },
+            ),
+            RequestCase(
+                # Filtering the query on truthiness rather than on `None` would drop both
+                # coordinates here and silently request a different tile.
+                id="a zero tile coordinate is still sent",
+                args={"z": 11, "x": 0, "y": 0, "period_from": 20241, "period_to": 20241},
+                expected_params={
+                    "response_format": "geojson",
+                    "z": "11",
+                    "x": "0",
+                    "y": "0",
+                    "from": "20241",
+                    "to": "20241",
+                },
+            ),
+            RequestCase(
+                # `",".join([])` is an empty string, which has to be dropped rather than
+                # sent as `landTypeCode=`.
+                id="an empty land type sequence is omitted",
+                args={
+                    "z": 15,
+                    "x": 1819,
+                    "y": 806,
+                    "period_from": 20241,
+                    "period_to": 20241,
+                    "land_type_code": [],
+                },
+                expected_params={
+                    "response_format": "geojson",
+                    "z": "15",
                     "x": "1819",
                     "y": "806",
                     "from": "20241",

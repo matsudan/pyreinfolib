@@ -22,16 +22,34 @@ _STATUS_TO_EXCEPTION: dict[int, type[exceptions.APIError]] = {
 }
 
 
-def _join_codes(codes: Sequence[str] | str) -> str:
+def _join_codes(codes: Sequence[str] | str | None) -> str | None:
     """Serialize one or more codes into the comma separated form the API expects.
 
     A bare string (a `StrEnum` member included) is passed through unchanged. Without this,
     forgetting to wrap a single code in a list would silently send `0,7` instead of `07`,
     because `",".join()` treats the string as a sequence of characters.
+
+    Passes `None` through so that an omitted argument can be handed to `_compact` like any
+    other. An empty sequence becomes an empty string, which `_compact` then drops.
     """
+    if codes is None:
+        return None
     if isinstance(codes, str):
         return codes
     return ",".join(codes)
+
+
+def _compact(params: dict[str, Any]) -> dict[str, Any]:
+    """Drop the entries the API should not receive at all.
+
+    `None` marks an argument the caller left out. An empty string is dropped too, which
+    keeps `city=""` out of the query the way the per-argument `if` checks used to.
+
+    Deliberately not a truthiness test. `x=0` is already a valid tile coordinate, and a
+    future parameter whose valid values include `0` would otherwise vanish from the request
+    with nothing to show why.
+    """
+    return {key: value for key, value in params.items() if value is not None and value != ""}
 
 
 class Client:
@@ -115,19 +133,17 @@ class Client:
         :return: Real estate prices.
         :raises NoResultsError: If no transaction matches the given period and area.
         """
-        params: dict[str, Any] = {"year": year}
-        if price_classification:
-            params["priceClassification"] = price_classification
-        if quarter:
-            params["quarter"] = quarter
-        if area:
-            params["area"] = area
-        if city:
-            params["city"] = city
-        if station:
-            params["station"] = station
-        if language:
-            params["language"] = language
+        params = _compact(
+            {
+                "year": year,
+                "priceClassification": price_classification,
+                "quarter": quarter,
+                "area": area,
+                "city": city,
+                "station": station,
+                "language": language,
+            }
+        )
 
         return self._get("XIT001", params)
 
@@ -139,9 +155,7 @@ class Client:
         :return: Municipality list.
         :raises NoResultsError: If the prefecture code matches no municipality.
         """
-        params: dict[str, Any] = {"area": area}
-        if language:
-            params.update(language=language)
+        params = _compact({"area": area, "language": language})
 
         return self._get("XIT002", params)
 
@@ -182,18 +196,18 @@ class Client:
           See https://www.reinfolib.mlit.go.jp/help/apiManual/#titleApi7
         :return: Real estate prices point. (Response format: GeoJson)
         """
-        params: dict[str, Any] = {
-            "response_format": "geojson",
-            "z": z,
-            "x": x,
-            "y": y,
-            "from": period_from,
-            "to": period_to,
-        }
-        if price_classification:
-            params["priceClassification"] = price_classification
-        if land_type_code:
-            params["landTypeCode"] = _join_codes(land_type_code)
+        params = _compact(
+            {
+                "response_format": "geojson",
+                "z": z,
+                "x": x,
+                "y": y,
+                "from": period_from,
+                "to": period_to,
+                "priceClassification": price_classification,
+                "landTypeCode": _join_codes(land_type_code),
+            }
+        )
 
         return self._get("XPT001", params)
 
@@ -220,11 +234,17 @@ class Client:
         :return: land price public notices (standard land prices) and
         prefectural land price surveys (benchmark land prices) point. (Response format: GeoJson)
         """
-        params: dict[str, Any] = {"response_format": "geojson", "z": z, "x": x, "y": y, "year": year}
-        if price_classification:
-            params["priceClassification"] = price_classification
-        if use_category_code:
-            params["useCategoryCode"] = _join_codes(use_category_code)
+        params = _compact(
+            {
+                "response_format": "geojson",
+                "z": z,
+                "x": x,
+                "y": y,
+                "year": year,
+                "priceClassification": price_classification,
+                "useCategoryCode": _join_codes(use_category_code),
+            }
+        )
 
         return self._get("XPT002", params)
 
