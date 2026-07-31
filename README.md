@@ -28,7 +28,14 @@ client = Client(api_key=os.environ["REINFOLIB_API_KEY"])
 ### 不動産価格（取引価格・成約価格）情報
 
 ```python
-client.get_real_estate_prices(year=2024, quarter=1, price_classification="01", city="13109")
+from pyreinfolib.enums import PriceClassification
+
+client.get_real_estate_prices(
+    year=2024,
+    quarter=1,
+    price_classification=PriceClassification.REAL_ESTATE_TRANSACTION_PRICE,
+    city="13109",
+)
 ```
 
 ### 鑑定評価書情報
@@ -86,7 +93,16 @@ except APIError as e:
 
 型情報を同梱しています（[PEP 561](https://peps.python.org/pep-0561/)）。
 
-`division`、`land_type_code`、`use_category_code` には `pyreinfolib.enums` の enum メンバーを渡してください。`StrEnum` なので実行時は文字列でも動きますが、型チェックでは拒否されます。単一のコードはリストに包む必要はありません。
+`price_classification`、`division`、`land_type_code`、`use_category_code` には `pyreinfolib.enums` の enum メンバーを渡してください。`StrEnum` なので実行時は文字列でも動きますが、型チェックでは拒否されます。単一のコードはリストに包む必要はありません。
+
+`price_classification` は API 上どのエンドポイントでも `priceClassification` という同じ名前ですが、コード体系は2つに分かれています。
+
+| enum | 対象 | コード |
+|---|---|---|
+| `PriceClassification` | 不動産価格（XIT001、XPT001） | `01` 不動産取引価格情報 / `02` 成約価格情報 |
+| `LandPriceClassification` | 地価公示・地価調査（XPT002） | `0` 地価公示 / `1` 都道府県地価調査 |
+
+別の型にしてあるので、取り違えは型チェックで検出されます。誤ったコードを送った場合、API はエラーではなく絞り込まれた結果や空の結果を返すため、実行時には気づきにくい種類の間違いです。
 
 ## Author
 
