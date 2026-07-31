@@ -1,0 +1,60 @@
+name: pr-title
+
+# This repository squash merges with `squash_merge_commit_title: PR_TITLE`, so the
+# pull request title becomes the subject of the commit that lands on main. release-please
+# then parses that subject to decide the next version and to build the CHANGELOG.
+# A malformed title is therefore not a cosmetic problem: a missing `!` ships a breaking
+# change as a patch, and an unrecognised type silently drops the entry from the CHANGELOG.
+on:
+  pull_request:
+    # `edited` catches a title fixed after the pull request was opened. `synchronize` is
+    # needed so that a run exists for every head commit; without it, making this a required
+    # check would block any pull request that received a push after the last title change.
+    types:
+      - opened
+      - edited
+      - reopened
+      - synchronize
+
+# Deny by default; the job below requests only the scope it needs.
+permissions: {}
+
+concurrency:
+  group: pr-title-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    steps:
+      - uses: amannn/action-semantic-pull-request@48f256284bd46cdaab1048c3721360e808335d50 # v6.1.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          # Listed explicitly rather than relying on the action's defaults, so that the
+          # accepted vocabulary is reviewable here and cannot drift with an upstream bump.
+          # release-please maps `feat` to a minor bump and `fix` to a patch; the remaining
+          # types are hidden from the CHANGELOG but still allowed as commit subjects.
+          types: |
+            build
+            chore
+            ci
+            docs
+            feat
+            fix
+            perf
+            refactor
+            revert
+            style
+            test
+          # Dependabot titles its pull requests `build(deps): ...`, so a scope has to stay
+          # permitted, but nothing in this project requires one.
+          requireScope: false
+          # Keep CHANGELOG entries uniform: every existing entry starts lowercase.
+          subjectPattern: ^(?![A-Z]).+$
+          subjectPatternError: |
+            The subject "{subject}" found in the pull request title "{title}" should start
+            with a lowercase character, so that it reads consistently with the other
+            entries in CHANGELOG.md.
