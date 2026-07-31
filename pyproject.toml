@@ -7,6 +7,11 @@ authors = [
 dynamic = ["version"]
 dependencies = [
     "requests",
+    # `urllib3.util.Retry` is used directly to configure the client's retry policy. It
+    # arrives with requests either way, but declaring what is imported keeps the resolver
+    # honest. `requests.adapters.Retry` is the same object, but it is an incidental import
+    # in requests rather than part of its public API.
+    "urllib3>=1.26",
 ]
 readme = "README.md"
 requires-python = ">= 3.11"

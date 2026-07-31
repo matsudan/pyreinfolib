@@ -1,12 +1,25 @@
 from collections.abc import Sequence
-from typing import Any, Literal
+from types import TracebackType
+from typing import Any, Literal, Self
 from urllib.parse import urljoin
 
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util import Retry
 
 from pyreinfolib import enums, exceptions
 
 DEFAULT_TIMEOUT = 30.0
+DEFAULT_MAX_RETRIES = 3
+
+# Statuses worth another attempt. 429 is the one the API documents: it publishes no request
+# ceiling and instead asks that calls be spaced out, so being throttled is an expected
+# outcome rather than a fault. See section 3, Q.3 of
+# https://www.reinfolib.mlit.go.jp/help/apiManual/
+#
+# 404 is deliberately absent. It means the query matched no data, so retrying it would only
+# wait to be told the same thing again.
+_RETRY_STATUSES = (429, 500, 502, 503, 504)
 
 # Statuses whose meaning the API documents. Anything else falls back to `APIError`, which
 # still carries the body, so the caller can read the API's own explanation.
@@ -53,21 +66,73 @@ def _compact(params: dict[str, Any]) -> dict[str, Any]:
 
 
 class Client:
-    def __init__(self, api_key: str, timeout: float | tuple[float, float] = DEFAULT_TIMEOUT) -> None:
+    def __init__(
+        self,
+        api_key: str,
+        timeout: float | tuple[float, float] = DEFAULT_TIMEOUT,
+        max_retries: int = DEFAULT_MAX_RETRIES,
+    ) -> None:
         """
         :param api_key: API key issued for the Real Estate Information Library.
         :param timeout: Request timeout in seconds, passed straight to `requests`.
           A single value applies to both connect and read, or pass a `(connect, read)` tuple.
-        :raises ValueError: If `api_key` is empty.
+          It bounds each attempt, not the sequence of retries.
+        :param max_retries: How many further attempts a throttled or briefly failing request
+          gets. Pass 0 to retry nothing. Waits between attempts grow exponentially, and a
+          `Retry-After` header from the API takes precedence over that.
+        :raises ValueError: If `api_key` is empty, or `max_retries` is negative.
         """
         # Reject it here rather than on the first request, where an empty or missing key
         # surfaces as a 401 that gives no hint about the actual cause.
         if not api_key:
             raise ValueError("`api_key` must be a non-empty string.")
+        if max_retries < 0:
+            raise ValueError("`max_retries` must not be negative.")
 
         self.api_key = api_key
         self.base_url = "https://www.reinfolib.mlit.go.jp/ex-api/external/"
         self.timeout = timeout
+
+        # One session for the whole client, so that a caller walking a tile grid reuses the
+        # connection instead of completing a TLS handshake per tile.
+        self._session = requests.Session()
+        self._session.headers["Ocp-Apim-Subscription-Key"] = api_key
+        adapter = HTTPAdapter(
+            max_retries=Retry(
+                total=max_retries,
+                status_forcelist=_RETRY_STATUSES,
+                backoff_factor=1.0,
+                # Hand the exhausted response back rather than raising, so that `_get` can
+                # translate it. urllib3 would otherwise raise, requests would wrap that in
+                # `RetryError`, and a request throttled to the last attempt would reach the
+                # caller as `TransportError` instead of `RateLimitError`.
+                raise_on_status=False,
+            )
+        )
+        # Both schemes, although the API is https only. `base_url` is a public attribute, so
+        # pointing a client at a local double over http is possible, and retrying is a
+        # property of the client rather than of the scheme it happens to be talking over.
+        self._session.mount("https://", adapter)
+        self._session.mount("http://", adapter)
+
+    def close(self) -> None:
+        """Release the connection pool.
+
+        Not needed for correctness, but a client left open holds its sockets until it is
+        garbage collected, which surfaces as a `ResourceWarning`.
+        """
+        self._session.close()
+
+    def __enter__(self) -> Self:
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
+        self.close()
 
     def _get(self, endpoint: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
         """Issue a GET against `endpoint` and return the decoded JSON body.
@@ -80,14 +145,13 @@ class Client:
         :raises APIError: For any other error status.
         """
         api_url = urljoin(self.base_url, endpoint)
-        headers = {"Ocp-Apim-Subscription-Key": self.api_key}
 
         # Each failure mode gets its own `try`. Wrapping the whole exchange in one block
         # would have to re-derive which stage failed from the exception type, which is how
         # the previous version came to dereference a `response` that connection errors and
         # timeouts do not have.
         try:
-            r = requests.get(api_url, headers=headers, params=params, timeout=self.timeout)
+            r = self._session.get(api_url, params=params, timeout=self.timeout)
         except requests.RequestException as e:
             raise exceptions.TransportError(f"Request to {api_url} failed: {e}") from e
 
