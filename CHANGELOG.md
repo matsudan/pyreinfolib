@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.4.0](https://github.com/matsudan/pyreinfolib/compare/v0.3.0...v0.4.0) (2026-07-31)
+
+
+### ⚠ BREAKING CHANGES
+
+* `price_classification` no longer accepts a bare code string. Pass `pyreinfolib.enums.PriceClassification` on `get_real_estate_prices` and `get_real_estate_prices_point`, and `pyreinfolib.enums.LandPriceClassification` on `get_land_price_public_notices_and_surveys_point`. A `StrEnum` member is a `str`, so existing calls keep working at runtime; it is type checking that now rejects them.
+* requests exceptions no longer escape the client. Catch `pyreinfolib.ReinfolibError`, or one of its subclasses, instead of `requests.RequestException`. In particular, a query that matches no data now raises `NoResultsError` instead of `requests.HTTPError` for HTTP 404.
+
+### Features
+
+* accept enums for price classification codes ([#39](https://github.com/matsudan/pyreinfolib/issues/39)) ([1ea86b2](https://github.com/matsudan/pyreinfolib/commit/1ea86b22fabeb35b9763b99433ebd7595c8c7a45))
+* replace requests exceptions with a pyreinfolib exception hierarchy ([#36](https://github.com/matsudan/pyreinfolib/issues/36)) ([da2f8d4](https://github.com/matsudan/pyreinfolib/commit/da2f8d48c5e389570c4d2bc74c77ec7c407e4451))
+
+
+### Bug Fixes
+
+* reject an empty api_key at construction time ([#33](https://github.com/matsudan/pyreinfolib/issues/33)) ([d413b72](https://github.com/matsudan/pyreinfolib/commit/d413b72aee3be08c7faf8e37992d1926100b56f5))
+
 ## [0.3.0](https://github.com/matsudan/pyreinfolib/compare/v0.2.1...v0.3.0) (2026-07-31)
 
 
