@@ -22,6 +22,25 @@ from pyreinfolib import Client
 client = Client(api_key=os.environ["REINFOLIB_API_KEY"])
 ```
 
+`Client` はコネクションを再利用します。タイル系APIを複数タイル分呼ぶような使い方では、TLSハンドシェイクが1回で済みます。使い終わったら `close()` するか、`with` を使ってください。
+
+```python
+with Client(api_key=os.environ["REINFOLIB_API_KEY"]) as client:
+    client.get_municipalities(area="13")
+```
+
+### リトライ
+
+スロットリング（HTTP 429）と一時的なサーバエラー（500、502、503、504）は自動で再試行します。APIはリクエスト数の明確な上限を公開しておらず、間隔を空けて実行するよう案内しているため、429 は障害ではなく想定される応答です。
+
+待ち時間は指数的に伸びます。既定の `max_retries=3` では 0秒、2秒、4秒の順に待ち、4回目で諦めて `RateLimitError` を送出します。APIが `Retry-After` を返した場合はそちらが優先されます。
+
+```python
+# 再試行しない
+client = Client(api_key=..., max_retries=0)
+```
+
+検索結果0件（HTTP 404）は再試行しません。`timeout` は各試行を制限するもので、再試行の全体を制限するものではありません。
 
 ## Example
 

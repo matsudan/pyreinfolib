@@ -198,6 +198,7 @@ name = "pyreinfolib"
 source = { editable = "." }
 dependencies = [
     { name = "requests" },
+    { name = "urllib3" },
 ]
 
 [package.dev-dependencies]
@@ -209,7 +210,10 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "requests" }]
+requires-dist = [
+    { name = "requests" },
+    { name = "urllib3", specifier = ">=1.26" },
+]
 
 [package.metadata.requires-dev]
 dev = [

@@ -5,6 +5,7 @@ from typing import Any
 import pytest
 import requests
 import responses
+from urllib3.util import Retry
 
 from pyreinfolib import Client
 from pyreinfolib.enums import LandPriceClassification, LandTypeCode, PriceClassification, UseDivision
@@ -22,6 +23,8 @@ BASE_URL = "https://www.reinfolib.mlit.go.jp/ex-api/external/"
 API_KEY = "dummy"
 DUMMY_RESPONSE = {"status": "OK", "data": []}
 DEFAULT_TIMEOUT = 30.0
+DEFAULT_MAX_RETRIES = 3
+THROTTLED = {"json": {"message": "slow down"}, "status": 429}
 
 
 @dataclass
@@ -50,7 +53,17 @@ def mock_api():
 
 @pytest.fixture
 def client():
-    return Client(api_key=API_KEY)
+    # Closed on teardown: the client now owns a connection pool, and leaving one open per
+    # test would leak sockets across the suite.
+    with Client(api_key=API_KEY) as client:
+        yield client
+
+
+def retries_of(client: Client) -> Retry:
+    """The retry policy the client actually mounted, as the transport sees it."""
+    adapter = client._session.get_adapter(BASE_URL)
+    assert isinstance(adapter.max_retries, Retry)
+    return adapter.max_retries
 
 
 def assert_request(mock_api: responses.RequestsMock, method: Callable, endpoint: str, case: RequestCase) -> None:
@@ -69,20 +82,72 @@ def assert_request(mock_api: responses.RequestsMock, method: Callable, endpoint:
 
 class TestClient:
     def test_init(self):
-        client = Client(api_key="dummy")
-        assert client.api_key == "dummy"
-        assert client.base_url == BASE_URL
-        assert client.timeout == DEFAULT_TIMEOUT
+        with Client(api_key="dummy") as client:
+            assert client.api_key == "dummy"
+            assert client.base_url == BASE_URL
+            assert client.timeout == DEFAULT_TIMEOUT
+            assert retries_of(client).total == DEFAULT_MAX_RETRIES
 
     def test_init_accepts_custom_timeout(self):
-        assert Client(api_key="dummy", timeout=5).timeout == 5
-        assert Client(api_key="dummy", timeout=(3.0, 10.0)).timeout == (3.0, 10.0)
+        with Client(api_key="dummy", timeout=5) as client:
+            assert client.timeout == 5
+        with Client(api_key="dummy", timeout=(3.0, 10.0)) as client:
+            assert client.timeout == (3.0, 10.0)
+
+    @pytest.mark.parametrize("max_retries", [0, 1, 10], ids=["disabled", "one", "many"])
+    def test_init_accepts_custom_max_retries(self, max_retries):
+        with Client(api_key="dummy", max_retries=max_retries) as client:
+            assert retries_of(client).total == max_retries
+
+    def test_init_mounts_a_retry_policy_that_matches_the_documented_behaviour(self):
+        """Asserted here because the effect is otherwise only visible in wall-clock time."""
+        with Client(api_key="dummy") as client:
+            retry = retries_of(client)
+
+            assert set(retry.status_forcelist) == {429, 500, 502, 503, 504}
+            # 404 means the query matched no data, so another attempt only waits to be told
+            # the same thing.
+            assert 404 not in retry.status_forcelist
+            assert retry.backoff_factor > 0
+            # A `Retry-After` from the API wins over the computed backoff.
+            assert retry.respect_retry_after_header is True
+            # See `test__get_maps_an_exhausted_retry_sequence_to_the_status_it_ended_on`.
+            assert retry.raise_on_status is False
 
     @pytest.mark.parametrize("api_key", ["", None], ids=["empty string", "None"])
     def test_init_rejects_an_empty_api_key(self, api_key):
         """`None` covers `Client(os.getenv("TYPO"))`, which would otherwise only fail as a 401."""
         with pytest.raises(ValueError, match="api_key"):
             Client(api_key=api_key)
+
+    @pytest.mark.parametrize("max_retries", [-1, -10])
+    def test_init_rejects_negative_max_retries(self, max_retries):
+        """`Retry(total=-1)` means something else entirely, so it must not be reachable."""
+        with pytest.raises(ValueError, match="max_retries"):
+            Client(api_key="dummy", max_retries=max_retries)
+
+    def test_close_is_idempotent(self):
+        """Calling `close` and then leaving a `with` block must not be an error."""
+        client = Client(api_key="dummy")
+
+        client.close()
+        client.close()
+
+    def test_used_as_a_context_manager_it_yields_itself_and_closes_on_exit(self, mock_api, monkeypatch):
+        """Spied rather than observed: `Session.close` empties its connection pools without
+        leaving anything on the session to assert against.
+        """
+        mock_api.get(f"{BASE_URL}TEST001", json=DUMMY_RESPONSE)
+        client = Client(api_key=API_KEY)
+        closed: list[bool] = []
+        monkeypatch.setattr(client._session, "close", lambda: closed.append(True))
+
+        with client as entered:
+            assert entered is client
+            assert entered._get("TEST001") == DUMMY_RESPONSE
+            assert closed == []
+
+        assert closed == [True]
 
     def test__get(self, mock_api, client):
         expected = {"status": "OK", "data": [{"test": "value"}]}
@@ -202,6 +267,67 @@ class TestClient:
 
         with pytest.raises(ReinfolibError):
             client._get("TEST999")
+
+    def test__get_goes_through_the_session(self, mock_api, client, monkeypatch):
+        """Connection reuse leaves no trace in a response, so guard the call path instead.
+
+        Going back to the module-level `requests.get` would open a fresh connection for
+        every tile and still pass every other test in this file.
+        """
+
+        def fail(*args: object, **kwargs: object) -> None:
+            raise AssertionError("requests.get was called instead of the client's session")
+
+        monkeypatch.setattr(requests, "get", fail)
+        mock_api.get(f"{BASE_URL}TEST001", json=DUMMY_RESPONSE)
+
+        assert client._get("TEST001") == DUMMY_RESPONSE
+
+    def test__get_retries_a_throttled_request(self, mock_api):
+        """Being throttled is expected rather than exceptional: the API sets no explicit
+        request ceiling and asks that calls be spaced out.
+        """
+        mock_api.get(f"{BASE_URL}TEST001", **THROTTLED)
+        mock_api.get(f"{BASE_URL}TEST001", json=DUMMY_RESPONSE)
+
+        with Client(api_key=API_KEY, max_retries=1) as client:
+            assert client._get("TEST001") == DUMMY_RESPONSE
+
+        assert len(mock_api.calls) == 2
+
+    def test__get_maps_an_exhausted_retry_sequence_to_the_status_it_ended_on(self, mock_api):
+        """The reason `raise_on_status` is False.
+
+        Left at the urllib3 default, an exhausted sequence raises inside urllib3, requests
+        wraps that in `RetryError`, and the handler in `_get` would translate it to
+        `TransportError` -- turning a request that was throttled all the way to the last
+        attempt into something indistinguishable from a connection failure.
+        """
+        mock_api.get(f"{BASE_URL}TEST001", **THROTTLED)
+        mock_api.get(f"{BASE_URL}TEST001", **THROTTLED)
+
+        with Client(api_key=API_KEY, max_retries=1) as client, pytest.raises(RateLimitError) as exc_info:
+            client._get("TEST001")
+
+        assert exc_info.value.status_code == 429
+        assert len(mock_api.calls) == 2
+
+    def test__get_does_not_retry_a_query_that_matched_no_data(self, mock_api):
+        """404 is a normal answer here, so retrying it only delays the same result."""
+        mock_api.get(f"{BASE_URL}TEST001", json={"message": "検索結果がありません。"}, status=404)
+
+        with Client(api_key=API_KEY) as client, pytest.raises(NoResultsError):
+            client._get("TEST001")
+
+        assert len(mock_api.calls) == 1
+
+    def test__get_makes_a_single_attempt_when_retries_are_disabled(self, mock_api):
+        mock_api.get(f"{BASE_URL}TEST001", **THROTTLED)
+
+        with Client(api_key=API_KEY, max_retries=0) as client, pytest.raises(RateLimitError):
+            client._get("TEST001")
+
+        assert len(mock_api.calls) == 1
 
     @pytest.mark.parametrize(
         "case",
