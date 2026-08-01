@@ -1,120 +1,41 @@
-# Byte-compiled / optimized / DLL files
+# Trimmed to the tools this repository actually uses: uv, hatchling, pytest, pytest-cov,
+# ruff and ty. The GitHub Python template it started from covered setuptools, tox, Django,
+# Flask, Scrapy, Sphinx, Jupyter, mypy, Pyre and pytype, none of which appear in
+# pyproject.toml. Those lines never matched anything, so they only obscured which artefacts
+# this project can actually produce.
+
+# Byte-compiled / optimized files
 __pycache__/
 *.py[cod]
-*$py.class
 
-# C extensions
-*.so
-
-# Distribution / packaging
-.Python
-build/
-develop-eggs/
+# hatch build output. `hatch build` in release-please.yml writes here.
 dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-share/python-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
 
-# PyInstaller
-#  Usually these files are written by a python script from a template
-#  before PyInstaller builds the exe, so as to inject date/other infos into it.
-*.manifest
-*.spec
-
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.nox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.py,cover
-.hypothesis/
+# pytest and pytest-cov. `.coverage` is written on every run because `--cov` is in addopts;
+# the other two only appear when a report format is asked for explicitly.
 .pytest_cache/
-cover/
+.coverage
+coverage.xml
+htmlcov/
 
-# Translations
-*.mo
-*.pot
+# ruff. Ruff also writes `.ruff_cache/.gitignore` containing `*`, so the contents are
+# ignored even without this line, but relying on a tool to ignore itself is not something
+# this file should assume.
+.ruff_cache/
 
-# Django stuff:
-*.log
-local_settings.py
-db.sqlite3
-db.sqlite3-journal
-
-# Flask stuff:
-instance/
-.webassets-cache
-
-# Scrapy stuff:
-.scrapy
-
-# Sphinx documentation
-docs/_build/
-
-# PyBuilder
-.pybuilder/
-target/
-
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# PEP 582; used by e.g. github.com/David-OConnor/pyflow and github.com/pdm-project/pdm
-__pypackages__/
-
-# Celery stuff
-celerybeat-schedule
-celerybeat.pid
-
-# Environments
-.env
+# uv creates the environment here.
 .venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
 
-# pyenv
+# Not read by anything in this project, but the client takes an API key and a stray `.env`
+# is the one file here whose leak would cost something.
+.env
+
+# pyenv. The interpreter pin is a per-machine choice, not a project-wide one.
 .python-version
 
-# mkdocs documentation
-/site
-
-# mypy
-.mypy_cache/
-.dmypy.json
-dmypy.json
-
-# Pyre type checker
-.pyre/
-
-# pytype static type analyzer
-.pytype/
-
-# Cython debug symbols
-cython_debug/
-
-# InelliJ
+# Editors and agents
 .idea/
-
-# Kiro
 .kiro/
 
-# MacOS
+# macOS
 .DS_Store
