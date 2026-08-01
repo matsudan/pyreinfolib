@@ -744,6 +744,48 @@ class Client:
             zoom_levels=range(9, 16),
         )
 
+    def get_landslide_prevention_districts(
+        self,
+        z: int,
+        x: int,
+        y: int,
+        prefecture_code: Sequence[str] | str | None = None,
+        administrative_area_code: Sequence[str] | str | None = None,
+    ) -> dict[str, Any]:
+        """Get landslide prevention districts (地すべり防止地区).
+
+        `districts` because the API dataset is named 地すべり防止**地区**. The designation it
+        carries is the 地すべり防止**区域** of Article 3 of the Landslide Prevention Act, which
+        the City Planning Act translation renders `landslide prevention area`. The method name
+        follows the API so that the manual's dataset name leads to it.
+
+        Note that `prefecture_code` here keeps its leading zero -- `09`, not the `9` that
+        XKT019 asks for. The two endpoints document the same code table differently.
+        See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt021/ for details.
+        :param z: Zoom level (scale). 11 (city) ~ 15 (detail)
+        :param x: x value of tile coordinates.
+        :param y: y value of tile coordinates.
+        :param prefecture_code: One prefecture code, or a sequence of them. Format: NN, so
+          `09` rather than `9`. See https://nlftp.mlit.go.jp/ksj/gml/codelist/PrefCd.html
+          If not specified, the whole tile.
+        :param administrative_area_code: One municipality code, or a sequence of them.
+          Format: NNNNN. The same code table the price endpoints spell `city`.
+          See https://nlftp.mlit.go.jp/ksj/gml/codelist/AdminiBoundary_CD.xlsx
+          If not specified, the whole tile.
+        :return: Landslide prevention districts. (Response format: GeoJson)
+        :raises ValueError: If `z` is not between 11 and 15, or a code argument is empty.
+        """
+        return self._get_tile(
+            "XKT021",
+            z,
+            x,
+            y,
+            {
+                "prefectureCode": _join_codes(prefecture_code),
+                "administrativeAreaCode": _join_codes(administrative_area_code),
+            },
+        )
+
     def get_district_plans(self, z: int, x: int, y: int) -> dict[str, Any]:
         """Get district plans (地区計画).
         See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt023/ for details.
@@ -765,6 +807,25 @@ class Client:
         :raises ValueError: If `z` is not between 11 and 15.
         """
         return self._get_tile("XKT024", z, x, y)
+
+    def get_sediment_disaster_alert_areas(self, z: int, x: int, y: int) -> dict[str, Any]:
+        """Get sediment disaster alert areas (土砂災害警戒区域).
+
+        An area where a sediment disaster could harm residents, designated by a prefecture so
+        that warnings and evacuation can be organised for it.
+
+        `sediment disaster alert area` comes from the governing act's own English title, the
+        Act for Promotion of Measures to Prevent Sediment Disasters in Sediment Disaster Alert
+        Areas. That title is quoted in the City Planning Act translation, which also gives the
+        stricter designation, `sediment disaster special alert area`.
+        See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt029/ for details.
+        :param z: Zoom level (scale). 11 (city) ~ 15 (detail)
+        :param x: x value of tile coordinates.
+        :param y: y value of tile coordinates.
+        :return: Sediment disaster alert areas. (Response format: GeoJson)
+        :raises ValueError: If `z` is not between 11 and 15.
+        """
+        return self._get_tile("XKT029", z, x, y)
 
     def get_city_planning_roads(self, z: int, x: int, y: int) -> dict[str, Any]:
         """Get city planning roads (都市計画道路).

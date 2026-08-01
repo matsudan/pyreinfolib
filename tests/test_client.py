@@ -42,6 +42,7 @@ TILE_ENDPOINTS = [
     ("get_natural_park_areas", "XKT019", {}, range(9, 16)),
     ("get_disaster_risk_areas", "XKT016", {}, range(11, 16)),
     ("get_densely_inhabited_districts", "XKT031", {}, range(9, 16)),
+    ("get_landslide_prevention_districts", "XKT021", {}, range(11, 16)),
 ]
 TILE_ENDPOINT_IDS = [
     "XPT001",
@@ -54,6 +55,7 @@ TILE_ENDPOINT_IDS = [
     "XKT019",
     "XKT016",
     "XKT031",
+    "XKT021",
 ]
 
 # Tile endpoints whose only further parameters are optional filters, with the API's spelling
@@ -858,6 +860,16 @@ class TestBlankArguments:
                 {"z": 9, "x": 227, "y": 100, "administrative_area_code": []},
                 "administrativeAreaCode",
             ),
+            (
+                "get_landslide_prevention_districts",
+                {"z": 11, "x": 1819, "y": 806, "prefecture_code": []},
+                "prefectureCode",
+            ),
+            (
+                "get_landslide_prevention_districts",
+                {"z": 11, "x": 1819, "y": 806, "administrative_area_code": []},
+                "administrativeAreaCode",
+            ),
         ],
         ids=[
             "land_type_code",
@@ -869,6 +881,8 @@ class TestBlankArguments:
             "prefecture_code",
             "district_code",
             "administrative_area_code on the widest zoom range",
+            "prefecture_code that keeps its padding",
+            "administrative_area_code alongside a prefecture filter",
         ],
     )
     def test_an_empty_sequence_of_codes_is_refused(self, mock_api, client, method_name, args, expected):
@@ -915,6 +929,7 @@ TILE_ONLY_ENDPOINTS = [
     ("get_municipal_offices_and_public_meeting_facilities_etc", "XKT018", range(13, 16)),
     ("get_district_plans", "XKT023", range(11, 16)),
     ("get_high_level_use_districts", "XKT024", range(11, 16)),
+    ("get_sediment_disaster_alert_areas", "XKT029", range(11, 16)),
     ("get_city_planning_roads", "XKT030", range(11, 16)),
     ("get_designated_emergency_evacuation_sites", "XGT001", range(11, 16)),
 ]
@@ -1069,6 +1084,32 @@ class TestTileEndpointsWithOptionalFilters:
             ),
         )
 
+    def test_the_landslide_endpoint_takes_a_prefecture_and_a_municipality_filter(self, mock_api, client):
+        """XKT021 is the only endpoint taking both, so neither can be assumed from the other."""
+        assert_request(
+            mock_api,
+            client.get_landslide_prevention_districts,
+            "XKT021",
+            RequestCase(
+                id="both filters",
+                args={
+                    "z": 11,
+                    "x": 1819,
+                    "y": 806,
+                    "prefecture_code": "22",
+                    "administrative_area_code": ["22100", "13102"],
+                },
+                expected_params={
+                    "response_format": "geojson",
+                    "z": "11",
+                    "x": "1819",
+                    "y": "806",
+                    "prefectureCode": "22",
+                    "administrativeAreaCode": "22100,13102",
+                },
+            ),
+        )
+
     def test_the_welfare_facility_classes_are_three_separate_filters(self, mock_api, client):
         """Major, middle and minor are one nested classification, but three parameters.
 
@@ -1190,6 +1231,29 @@ class TestUnpaddedCodes:
         assert "01" in message
         assert "09" in message
         assert "area" in message
+
+    def test_the_other_prefecture_filter_keeps_its_leading_zero(self, mock_api, client):
+        """XKT021 documents the same code table as `09`, which is what XKT019 refuses.
+
+        The padding rule is per endpoint, not library wide. Applying it everywhere would
+        reject the form XKT021 asks for.
+        """
+        assert_request(
+            mock_api,
+            client.get_landslide_prevention_districts,
+            "XKT021",
+            RequestCase(
+                id="padded, as XKT021 documents",
+                args={"z": 11, "x": 1819, "y": 806, "prefecture_code": ["09", "14"]},
+                expected_params={
+                    "response_format": "geojson",
+                    "z": "11",
+                    "x": "1819",
+                    "y": "806",
+                    "prefectureCode": "09,14",
+                },
+            ),
+        )
 
     def test_a_single_digit_zero_is_not_treated_as_padding(self, mock_api, client):
         """`0` is not a prefecture, but it is not a padded code either.

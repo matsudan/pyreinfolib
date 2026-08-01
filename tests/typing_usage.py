@@ -65,6 +65,8 @@ def tile_endpoints_from_a_point(client: Client) -> None:
     client.get_disaster_risk_areas(*tile)
     client.get_densely_inhabited_districts(*tile)
     client.get_city_planning_roads(*tile)
+    client.get_landslide_prevention_districts(*tile)
+    client.get_sediment_disaster_alert_areas(*tile)
 
 
 def tile_endpoints_over_an_extent(client: Client) -> None:
@@ -148,6 +150,13 @@ def municipality_code_filters(client: Client) -> None:
     # the rest, so the padding rule is a runtime check rather than something a type says.
     client.get_natural_park_areas(z=9, x=227, y=100, prefecture_code="9")
     client.get_natural_park_areas(z=9, x=227, y=100, prefecture_code=["9", "11"], district_code="10")
+
+    # XKT021 documents the same table as `09`. Same argument name, same type, opposite form,
+    # so nothing here distinguishes the two but the endpoint.
+    client.get_landslide_prevention_districts(z=11, x=1819, y=806, prefecture_code="09")
+    client.get_landslide_prevention_districts(
+        z=11, x=1819, y=806, prefecture_code=["09", "14"], administrative_area_code="22100"
+    )
 
 
 def error_handling(client: Client) -> None:
