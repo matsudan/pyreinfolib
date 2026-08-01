@@ -71,7 +71,7 @@ client.get_appraisal_reports(year=2024, area="13", division=UseDivision.INDUSTRI
 
 ### タイル座標だけで引くAPI
 
-タイル座標のみを取る11本は、引数が `z`, `x`, `y` だけです。
+タイル座標のみを取る12本は、引数が `z`, `x`, `y` だけです。
 
 | メソッド | ID | データ | ズーム |
 |---|---|---|---|
@@ -86,6 +86,7 @@ client.get_appraisal_reports(year=2024, area="13", division=UseDivision.INDUSTRI
 | `get_municipal_offices_and_public_meeting_facilities_etc` | XKT018 | 市区町村役場及び集会施設等 | 13〜15 |
 | `get_district_plans` | XKT023 | 地区計画 | 11〜15 |
 | `get_high_level_use_districts` | XKT024 | 高度利用地区 | 11〜15 |
+| `get_designated_emergency_evacuation_sites` | XGT001 | 指定緊急避難場所 | 11〜15 |
 
 ```python
 from pyreinfolib import tiles
@@ -126,6 +127,16 @@ client.get_welfare_facilities(
 ```
 
 コード表は[大分類](https://nlftp.mlit.go.jp/ksj/gml/codelist/welfareInstitution_welfareFacilityMajorClassificationCode.html)、[中分類](https://nlftp.mlit.go.jp/ksj/gml/codelist/welfareInstitution_welfareFacilityMiddleClassificationCode.html)、[小分類](https://nlftp.mlit.go.jp/ksj/gml/codelist/welfareInstitution_welfareFacilityMinorClassificationCode.html)にあります。enum ではなく `str` です。中分類62件・小分類122件という規模に加えて、大分類7件のうち2件に公表された英訳がないためです（[CONTRIBUTING.md](CONTRIBUTING.md#enum-にするか-str-にするか)）。
+
+### 自然公園地域
+
+`get_natural_park_areas`（XKT019）はズーム9〜15で、都道府県コードと地区コード（振興局区域）で絞り込めます。どちらも任意です。
+
+```python
+client.get_natural_park_areas(z=9, x=227, y=100, prefecture_code=["9", "11"])
+```
+
+**このAPIのコードは先頭の0を付けません。** 栃木県は `"9"` で、`"09"` ではありません。不動産取引価格情報の `area` は `"09"` の形式なので、同じ都道府県コードでも綴りが違います。マニュアルが定めている形式なので、`"09"` を渡すと `ValueError` になります。API に送ると認識されないコードとして空のタイルが返り、自然公園がないタイルと区別が付かなくなるためです。
 
 ## タイル座標
 

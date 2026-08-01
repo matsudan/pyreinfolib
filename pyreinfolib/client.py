@@ -62,6 +62,32 @@ def _join_codes(codes: Sequence[str] | str | None) -> str | None:
     return ",".join(codes)
 
 
+def _join_unpadded_codes(name: str, codes: Sequence[str] | str | None) -> str | None:
+    """Serialize codes the API documents without a leading zero, and refuse padded ones.
+
+    XKT019 asks for `9` where the price endpoints ask for `09` for the same prefecture: its
+    manual says to take the code from the published list and strip a leading zero. `09` is
+    therefore outside the documented format, and it is refused here rather than sent, because
+    a code the API does not recognise comes back as a tile with no features. That reads as
+    "no natural parks in this tile" rather than as an argument the API threw away.
+
+    Refused on the manual's word, not on observed behaviour, which is also how `z` is checked.
+    """
+    joined = _join_codes(codes)
+    if joined is None:
+        return None
+
+    padded = sorted({code for code in joined.split(",") if len(code) > 1 and code.startswith("0")})
+    if padded:
+        listed = ", ".join(padded)
+        raise ValueError(
+            f"`{name}` is written without a leading zero, so {listed} is not a code it takes. "
+            f"Drop the zero. Note that `area` on the other endpoints keeps it."
+        )
+
+    return joined
+
+
 def _compact(params: dict[str, Any]) -> dict[str, Any]:
     """Drop the arguments the caller left out, and refuse the ones left blank.
 
@@ -641,6 +667,49 @@ class Client:
         """
         return self._get_tile("XKT018", z, x, y, zoom_levels=range(13, 16))
 
+    def get_natural_park_areas(
+        self,
+        z: int,
+        x: int,
+        y: int,
+        prefecture_code: Sequence[str] | str | None = None,
+        district_code: Sequence[str] | str | None = None,
+    ) -> dict[str, Any]:
+        """Get natural park areas (自然公園地域).
+
+        Natural parks are national parks, quasi-national parks and prefectural natural parks,
+        each divided into special areas and ordinary areas.
+
+        Both filters here are written without a leading zero, unlike `area` elsewhere: this
+        endpoint asks for `9`, not `09`. A padded code raises `ValueError`.
+        See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt019/ for details.
+        :param z: Zoom level (scale). 9 (prefecture) ~ 15 (detail)
+        :param x: x value of tile coordinates.
+        :param y: y value of tile coordinates.
+        :param prefecture_code: One prefecture code, or a sequence of them. 1 (Hokkaido) ~
+          47 (Okinawa), with no leading zero. See
+          https://nlftp.mlit.go.jp/ksj/gml/codelist/PrefCd.html
+          If not specified, the whole tile.
+        :param district_code: One subprefecture code, or a sequence of them, with no leading
+          zero. See https://nlftp.mlit.go.jp/ksj/gml/codelist/SubprefectureNameCd.html
+          If not specified, the whole tile.
+        :return: Natural park areas. (Response format: GeoJson)
+        :raises ValueError: If `z` is not between 9 and 15, or a code argument is empty or
+          carries a leading zero.
+        """
+        return self._get_tile(
+            "XKT019",
+            z,
+            x,
+            y,
+            {
+                "prefectureCode": _join_unpadded_codes("prefecture_code", prefecture_code),
+                "districtCode": _join_unpadded_codes("district_code", district_code),
+            },
+            # Wider than the rest, which start at 11.
+            zoom_levels=range(9, 16),
+        )
+
     def get_district_plans(self, z: int, x: int, y: int) -> dict[str, Any]:
         """Get district plans (地区計画).
         See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt023/ for details.
@@ -662,3 +731,18 @@ class Client:
         :raises ValueError: If `z` is not between 11 and 15.
         """
         return self._get_tile("XKT024", z, x, y)
+
+    def get_designated_emergency_evacuation_sites(self, z: int, x: int, y: int) -> dict[str, Any]:
+        """Get designated emergency evacuation sites (指定緊急避難場所).
+
+        A designated emergency evacuation site is somewhere a municipality has designated for
+        people to withdraw to while a disaster is occurring or about to. It is not the same as
+        a designated shelter (指定避難所), which is where they stay afterwards.
+        See https://www.reinfolib.mlit.go.jp/help/apiManual/xgt001/ for details.
+        :param z: Zoom level (scale). 11 (city) ~ 15 (detail)
+        :param x: x value of tile coordinates.
+        :param y: y value of tile coordinates.
+        :return: Designated emergency evacuation sites. (Response format: GeoJson)
+        :raises ValueError: If `z` is not between 11 and 15.
+        """
+        return self._get_tile("XGT001", z, x, y)
