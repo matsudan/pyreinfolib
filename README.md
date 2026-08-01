@@ -22,6 +22,10 @@ from pyreinfolib import Client
 client = Client(api_key=os.environ["REINFOLIB_API_KEY"])
 ```
 
+引数を省略する、または `None` を渡すと、その絞り込みを行いません。`get_real_estate_prices(year=2024)` は全国が対象になります。
+
+空文字を渡した場合は `ValueError` になります。省略と同じ扱いにはしません。`city=""` を絞り込みのつもりで渡したときに、黙って全国が返ることを避けるためです。フォームや環境変数の値をそのまま渡す場合は `city=value or None` としてください。同様に、コードのリストが空（`land_type_code=[]`）の場合も `ValueError` です。絞り込んだ結果が0件になったことは、全種類を要求することとは違うためです。
+
 `Client` はコネクションを再利用します。タイル系APIを複数タイル分呼ぶような使い方では、TLSハンドシェイクが1回で済みます。使い終わったら `close()` するか、`with` を使ってください。
 
 ```python

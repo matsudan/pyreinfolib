@@ -375,8 +375,10 @@ class TestClient:
                 expected_params={"year": "2025"},
             ),
             RequestCase(
-                id="omitted and empty optional params are absent from the query",
-                args={"year": 2025, "price_classification": None, "quarter": None, "city": ""},
+                # Omitting the filters is a supported request, not a mistake: `year` is the
+                # only required argument, so this asks for the whole country deliberately.
+                id="omitted optional params are absent from the query",
+                args={"year": 2025, "price_classification": None, "quarter": None, "city": None},
                 expected_params={"year": "2025"},
             ),
         ],
@@ -511,16 +513,14 @@ class TestClient:
                 },
             ),
             RequestCase(
-                # `",".join([])` is an empty string, which has to be dropped rather than
-                # sent as `landTypeCode=`.
-                id="an empty land type sequence is omitted",
+                id="land types omitted entirely",
                 args={
                     "z": 15,
                     "x": 1819,
                     "y": 806,
                     "period_from": 20241,
                     "period_to": 20241,
-                    "land_type_code": [],
+                    "land_type_code": None,
                 },
                 expected_params={
                     "response_format": "geojson",
@@ -739,3 +739,84 @@ class TestEnums:
         assert price_codes == {"01", "02"}
         assert land_price_codes == {"0", "1"}
         assert not price_codes & land_price_codes
+
+
+class TestBlankArguments:
+    """A blank argument used to be treated as an omitted one, in three different ways.
+
+    `city=""` widened a query to the whole country, a blank required argument disappeared from
+    the request, and `land_type_code=[]` read as no filter. None of the three said anything, so
+    a caller who thought they had filtered got a wider answer and no indication of it.
+
+    Omitting a filter is still supported and still means the whole country. It is spelled by
+    leaving the argument out, or passing `None`, which `test_get_real_estate_prices` covers.
+    """
+
+    @pytest.mark.parametrize("argument", ["area", "city", "station", "language"])
+    def test_a_blank_optional_filter_is_refused(self, mock_api, client, argument):
+        """Nothing is registered on `mock_api`, so a blank that slipped through would fail as
+        an unmatched request rather than quietly fetching the whole country.
+        """
+        with pytest.raises(ValueError, match=argument):
+            client.get_real_estate_prices(year=2024, **{argument: ""})
+
+    @pytest.mark.parametrize(
+        ("method_name", "args"),
+        [
+            ("get_real_estate_prices", {"year": 2024, "area": ""}),
+            ("get_municipalities", {"area": ""}),
+            ("get_appraisal_reports", {"year": 2024, "area": "", "division": UseDivision.INDUSTRIAL_LAND}),
+        ],
+        ids=["XIT001", "XIT002", "XCT001"],
+    )
+    def test_a_blank_area_is_refused_by_every_method_that_takes_one(self, mock_api, client, method_name, args):
+        """Uniform across the three, which it was not.
+
+        `get_municipalities` dropped a blank `area` even though it is required, producing a
+        request with no query string at all. `get_appraisal_reports` did not go through
+        `_compact` and sent `area=` instead. Same argument, same blank, two behaviours.
+        """
+        with pytest.raises(ValueError, match="area"):
+            getattr(client, method_name)(**args)
+
+    @pytest.mark.parametrize(
+        ("method_name", "args", "expected"),
+        [
+            (
+                "get_real_estate_prices_point",
+                {"z": 15, "x": 1819, "y": 806, "period_from": 20241, "period_to": 20241, "land_type_code": []},
+                "landTypeCode",
+            ),
+            (
+                "get_land_price_public_notices_and_surveys_point",
+                {"z": 13, "x": 7312, "y": 3008, "year": 2020, "use_category_code": []},
+                "useCategoryCode",
+            ),
+        ],
+        ids=["land_type_code", "use_category_code"],
+    )
+    def test_an_empty_sequence_of_codes_is_refused(self, mock_api, client, method_name, args, expected):
+        """A list that filtered down to nothing is not a request for every code."""
+        with pytest.raises(ValueError, match=expected):
+            getattr(client, method_name)(**args)
+
+    def test_the_refusal_names_every_blank_argument_and_says_what_to_do(self, mock_api, client):
+        """Naming one of three would send the caller back for another round."""
+        with pytest.raises(ValueError) as exc_info:
+            client.get_real_estate_prices(year=2024, area="", city="", station="")
+
+        message = str(exc_info.value)
+        assert "area" in message
+        assert "city" in message
+        assert "station" in message
+        assert "None" in message
+
+    def test_zero_is_not_treated_as_blank(self, mock_api, client):
+        """`x=0` is a valid tile coordinate, so the check compares against `""` rather than
+        testing truthiness.
+        """
+        mock_api.get(f"{BASE_URL}XKT015", json=DUMMY_RESPONSE)
+
+        client.get_number_of_passengers_per_station(z=11, x=0, y=0)
+
+        assert params_of(mock_api.calls[0].request)["x"] == "0"

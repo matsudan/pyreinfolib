@@ -52,7 +52,8 @@ def _join_codes(codes: Sequence[str] | str | None) -> str | None:
     because `",".join()` treats the string as a sequence of characters.
 
     Passes `None` through so that an omitted argument can be handed to `_compact` like any
-    other. An empty sequence becomes an empty string, which `_compact` then drops.
+    other. An empty sequence becomes an empty string, which `_compact` then refuses: a caller
+    whose list of codes filtered down to nothing is not asking for every code.
     """
     if codes is None:
         return None
@@ -62,16 +63,27 @@ def _join_codes(codes: Sequence[str] | str | None) -> str | None:
 
 
 def _compact(params: dict[str, Any]) -> dict[str, Any]:
-    """Drop the entries the API should not receive at all.
+    """Drop the arguments the caller left out, and refuse the ones left blank.
 
-    `None` marks an argument the caller left out. An empty string is dropped too, which
-    keeps `city=""` out of the query the way the per-argument `if` checks used to.
+    `None` is how an argument is omitted, and omitting a filter is a supported request: the
+    only required argument of most endpoints is the period, so leaving `city` out asks for the
+    whole country on purpose.
 
-    Deliberately not a truthiness test. `x=0` is already a valid tile coordinate, and a
-    future parameter whose valid values include `0` would otherwise vanish from the request
-    with nothing to show why.
+    A blank value is not another way to say that. It used to be dropped as though it were
+    `None`, which meant `city=""` quietly widened a query to the whole country, a blank
+    required argument disappeared from the request altogether, and an empty list of codes read
+    as no filter at all. None of the three announced itself.
+
+    Values are compared against `""` rather than tested for truthiness. `x=0` is a valid tile
+    coordinate, and a future parameter whose valid values include `0` would otherwise vanish
+    from the request with nothing to show why.
     """
-    return {key: value for key, value in params.items() if value is not None and value != ""}
+    blank = sorted(key for key, value in params.items() if value == "")
+    if blank:
+        listed = ", ".join(blank)
+        raise ValueError(f"Blank value for {listed}. Leave the argument out, or pass `None`, to omit it.")
+
+    return {key: value for key, value in params.items() if value is not None}
 
 
 class Client:
@@ -248,6 +260,7 @@ class Client:
         :param station: Station code. See https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-N02-v3_1.html
         :param language: `ja` or `en`. If not specified, `ja`.
         :return: Real estate prices.
+        :raises ValueError: If an argument is blank. Leave it out instead, to omit it.
         :raises NoResultsError: If no transaction matches the given period and area.
         """
         params = _compact(
@@ -270,6 +283,7 @@ class Client:
         :param area: Prefecture code. See https://nlftp.mlit.go.jp/ksj/gml/codelist/PrefCd.html
         :param language: `ja` or `en`. If not specified, `ja`.
         :return: Municipality list.
+        :raises ValueError: If `area` is blank.
         :raises NoResultsError: If the prefecture code matches no municipality.
         """
         params = _compact({"area": area, "language": language})
@@ -283,9 +297,12 @@ class Client:
         :param area: Prefecture code.
         :param division: Use division.
         :return: Real estate appraisal reports.
+        :raises ValueError: If `area` is blank.
         :raises NoResultsError: If no appraisal report matches the given year and area.
         """
-        params: dict[str, Any] = {"year": year, "area": area, "division": division}
+        # Through `_compact` although nothing here is optional, so that a blank `area` is
+        # refused rather than sent as `area=`, which is what this method did on its own.
+        params = _compact({"year": year, "area": area, "division": division})
 
         return self._get("XCT001", params)
 
@@ -311,7 +328,7 @@ class Client:
         :param land_type_code: One land type code, or a sequence of them.
           See https://www.reinfolib.mlit.go.jp/help/apiManual/#titleApi7
         :return: Real estate prices point. (Response format: GeoJson)
-        :raises ValueError: If `z` is not between 11 and 15.
+        :raises ValueError: If `z` is not between 11 and 15, or `land_type_code` is empty.
         """
         return self._get_tile(
             "XPT001",
@@ -350,7 +367,7 @@ class Client:
           See https://www.reinfolib.mlit.go.jp/help/apiManual/#titleApi8
         :return: land price public notices (standard land prices) and
         prefectural land price surveys (benchmark land prices) point. (Response format: GeoJson)
-        :raises ValueError: If `z` is not between 13 and 15.
+        :raises ValueError: If `z` is not between 13 and 15, or `use_category_code` is empty.
         """
         return self._get_tile(
             "XPT002",
