@@ -26,6 +26,16 @@ DEFAULT_TIMEOUT = 30.0
 DEFAULT_MAX_RETRIES = 3
 THROTTLED = {"json": {"message": "slow down"}, "status": 429}
 
+# Each tile endpoint, the arguments it needs beyond the coordinates, and the zoom levels its
+# docstring documents. XPT002 is the one that does not start at 11, which is why the check has
+# to be per endpoint rather than one shared range.
+TILE_ENDPOINTS = [
+    ("get_real_estate_prices_point", "XPT001", {"period_from": 20241, "period_to": 20241}, range(11, 16)),
+    ("get_land_price_public_notices_and_surveys_point", "XPT002", {"year": 2020}, range(13, 16)),
+    ("get_number_of_passengers_per_station", "XKT015", {}, range(11, 16)),
+]
+TILE_ENDPOINT_IDS = ["XPT001", "XPT002", "XKT015"]
+
 
 @dataclass
 class RequestCase:
@@ -628,6 +638,59 @@ class TestClient:
         assert params["z"] == str(args["z"])
         assert params["x"] == str(args["x"])
         assert params["y"] == str(args["y"])
+
+    @pytest.mark.parametrize(("method_name", "endpoint", "extra", "zoom_levels"), TILE_ENDPOINTS, ids=TILE_ENDPOINT_IDS)
+    def test_tile_endpoints_accept_a_zoom_level_held_in_a_variable(
+        self, mock_api, client, method_name, endpoint, extra, zoom_levels
+    ):
+        """`z` is annotated `int`, not a `Literal`, and this is why.
+
+        A `Literal` only constrains a call site that writes the number out. Every documented
+        way of obtaining a zoom level here produces an `int` -- `tiles.containing` and
+        `tiles.covering` both do -- so the `Literal` rejected the intended usage while
+        catching nothing about an out-of-range level that arrived computed.
+        """
+        for _ in zoom_levels:
+            mock_api.get(f"{BASE_URL}{endpoint}", json=DUMMY_RESPONSE)
+
+        for z in zoom_levels:
+            getattr(client, method_name)(z=z, x=1, y=1, **extra)
+
+        assert len(mock_api.calls) == len(zoom_levels)
+
+    @pytest.mark.parametrize(("method_name", "endpoint", "extra", "zoom_levels"), TILE_ENDPOINTS, ids=TILE_ENDPOINT_IDS)
+    def test_tile_endpoints_reject_a_zoom_level_they_do_not_document(
+        self, mock_api, client, method_name, endpoint, extra, zoom_levels
+    ):
+        """Nothing is registered on `mock_api`, so a level that slips through the check would
+        fail as an unmatched request rather than reaching the real API.
+        """
+        for z in (zoom_levels.start - 1, zoom_levels[-1] + 1, 0, -1, 99):
+            with pytest.raises(ValueError, match=endpoint):
+                getattr(client, method_name)(z=z, x=1, y=1, **extra)
+
+    @pytest.mark.parametrize("z", [11, 12])
+    def test_the_land_price_endpoint_rejects_levels_the_others_accept(self, mock_api, client, z):
+        """XPT002 starts at 13 where the rest start at 11.
+
+        One shared range would quietly send 11 to an endpoint that does not serve it, and the
+        API answers a tile it has no data for with an empty feature list rather than an error.
+        """
+        with pytest.raises(ValueError, match="XPT002"):
+            client.get_land_price_public_notices_and_surveys_point(z=z, x=7312, y=3008, year=2020)
+
+    def test_the_rejection_names_the_endpoint_and_the_range(self, mock_api, client):
+        """With 33 tile endpoints and more than one range among them, "z must be 11 to 15" on
+        its own does not tell the caller which endpoint disagreed.
+        """
+        with pytest.raises(ValueError) as exc_info:
+            client.get_land_price_public_notices_and_surveys_point(z=11, x=7312, y=3008, year=2020)
+
+        message = str(exc_info.value)
+        assert "XPT002" in message
+        assert "13" in message
+        assert "15" in message
+        assert "11" in message
 
 
 class TestExceptions:
