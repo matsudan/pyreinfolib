@@ -920,6 +920,7 @@ class TestBlankArguments:
 TILE_ONLY_ENDPOINTS = [
     ("get_city_planning_areas_and_area_classification", "XKT001", range(11, 16)),
     ("get_use_districts", "XKT002", range(11, 16)),
+    ("get_location_normalization_plans", "XKT003", range(11, 16)),
     ("get_schools", "XKT006", range(13, 16)),
     ("get_nursery_schools_and_kindergartens_etc", "XKT007", range(13, 16)),
     ("get_medical_institutions", "XKT010", range(13, 16)),

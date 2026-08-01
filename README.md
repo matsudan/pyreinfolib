@@ -77,12 +77,13 @@ client.get_appraisal_reports(year=2024, area="13", division=UseDivision.INDUSTRI
 
 ### タイル座標だけで引くAPI
 
-タイル座標のみを取る14本は、引数が `z`, `x`, `y` だけです。
+タイル座標のみを取る15本は、引数が `z`, `x`, `y` だけです。
 
 | メソッド | ID | データ | ズーム |
 |---|---|---|---|
 | `get_city_planning_areas_and_area_classification` | XKT001 | 都市計画区域/区域区分 | 11〜15 |
 | `get_use_districts` | XKT002 | 用途地域 | 11〜15 |
+| `get_location_normalization_plans` | XKT003 | 立地適正化計画 | 11〜15 |
 | `get_schools` | XKT006 | 学校 | 13〜15 |
 | `get_nursery_schools_and_kindergartens_etc` | XKT007 | 保育園・幼稚園等 | 13〜15 |
 | `get_medical_institutions` | XKT010 | 医療機関 | 13〜15 |
