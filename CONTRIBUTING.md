@@ -92,6 +92,14 @@ API 側が改称したとき、追随すべきかの判断がつきます。
 - **メソッド名**は返り値に合わせます。一覧が返るなら複数（`get_municipalities`）
 - **enum メンバー**は単数です（`RESIDENTIAL_LAND`、`LAND_AND_BUILDING`）
 
+### 引数名は API のパラメータ名を snake_case にしただけにします
+
+`administrativeAreaCode` → `administrative_area_code`、`welfareFacilityMiddleClassCode` → `welfare_facility_middle_class_code` です。メソッド名と違って導出手順はありません。
+
+**同じコード表でも API の綴りが違えば引数名も分けます。** 市区町村コードは XIT001 では `city`、XKT004 などでは `administrativeAreaCode` です。同じ5桁のコード表ですが、片方に寄せると寄せなかった側の引数名が、利用者がマニュアルで読むパラメータ名と一致しなくなります。docstring で同じコード表だと伝えます。
+
+例外は Python の予約語と衝突する場合です。XPT001 の `from` / `to` は `period_from` / `period_to` にしています。
+
 ### 導出例
 
 規則が既存の6メソッドを再現することを確認済みです。
@@ -114,6 +122,29 @@ API 側が改称したとき、追随すべきかの判断がつきます。
 **値に意味が読み取れるものは `Literal` のままにします。** `quarter: Literal[1, 2, 3, 4]`、`language: Literal["ja", "en"]`、`z: Literal[11, 12, 13, 14, 15]` はそのままで十分です。
 
 `StrEnum` を使います。実行時は文字列としても動くので、型チェックだけが新しい制約になります。
+
+### enum にするか `str` にするか
+
+コード表が enum になる条件は2つあり、両方必要です。
+
+- **数えられる規模である。** `UseDivision` は8件、`LandTypeCode` は5件です。都道府県コード（47件）と市区町村コード（約1900件）は `area`、`city`、`administrative_area_code` として `str` のままにし、docstring にコード表の URL を置いています
+- **全メンバーに典拠のある訳語がある。** 一部しか訳せないコード表は enum にしません。呼び出し側が同じ引数に enum メンバーと生の文字列を混ぜることになり、enum を作った意味がなくなります
+
+福祉施設大分類コード（XKT011）が2つ目に当たる例です。7件で規模は足りていますが、うち2件に公表された英訳がありません。
+
+| コード | 用語 | 英訳 | 典拠 |
+|---|---|---|---|
+| 01 | 保護施設 | public assistance facility | 生活保護法 第六章、38条（[laws/view/24](https://www.japaneselawtranslation.go.jp/ja/laws/view/24/je)） |
+| 02 | 老人福祉施設 | welfare facility for the elderly | 老人福祉法5条の3（[laws/view/3930](https://www.japaneselawtranslation.go.jp/ja/laws/view/3930/je)） |
+| 03 | 障害者支援施設等 | support facility for persons with disabilities | 障害者総合支援法5条11項（[laws/view/4093](https://www.japaneselawtranslation.go.jp/ja/laws/view/4093/je)） |
+| 04 | 身体障害者社会参加支援施設 | **なし** | 身体障害者福祉法5条。法令訳DBに収録なし |
+| 05 | 児童福祉施設等 | child welfare institution | 児童福祉法7条1項（[laws/view/4035](https://www.japaneselawtranslation.go.jp/ja/laws/view/4035/je)） |
+| 06 | 母子・父子福祉施設 | **なし** | 母子及び父子並びに寡婦福祉法38条。法令訳DBに収録なし |
+| 99 | その他の社会福祉施設等 | social welfare facility | 社会福祉法62条（[laws/view/3813](https://www.japaneselawtranslation.go.jp/ja/laws/view/3813/je)） |
+
+上の5件は[厚生労働白書の英語版](https://www.mhlw.go.jp/wp/hakusyo/kousei/11-2/kousei-data/PDF/23010804_en.pdf)でも同じ組み合わせで使われています。04 と 06 は厚生労働省の英語資料でも旧称で揺れていて（`rehabilitation facilities for people with physical disabilities` など）、現行名の定訳がありません。
+
+**後から enum を足すのは非破壊的です。** `Sequence[str] | str | None` は `Sequence[WelfareFacilityClassCode | str] | WelfareFacilityClassCode | str | None` に広げられ、`str` を受け続けるので既存の呼び出しは壊れません。逆に `str` を enum だけに絞るのは壊れます。迷ったら `str` から始めてください。
 
 ### コード体系が別なら enum も分けます
 
@@ -141,6 +172,8 @@ class PriceClassification(StrEnum):
 2. **[地価に関する国際的な情報発信の強化に向けた検討業務 調査報告書](https://www.mlit.go.jp/common/000214955.pdf)**（国土交通省 土地・建設産業局、平成24年3月）。地価公示・鑑定評価の語彙について、MLIT が統一的な英訳を提示する目的で作成した用語集です。地価関連語は法令訳DBより詳しく、DBの訳に対する明示的な注記もあります
 3. **所管省庁の英語版資料**。法令用語でないもの（統計用語、データセット名）
 4. **既にこのライブラリで使っている訳語**。1〜3で確認できないもの
+
+1〜4のどこにも訳語がない語があります。根拠法が法令訳DBに未収録で、所管省庁の英語資料も旧称のまま揺れている場合です。訳語を発明せず、その語を名前にしない設計を選んでください。コード表なら「[enum にするか `str` にするか](#enum-にするか-str-にするか)」の通り `str` のままにします。
 
 ### 確定
 

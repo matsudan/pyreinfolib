@@ -412,6 +412,62 @@ class Client:
         """
         return self._get_tile("XKT002", z, x, y)
 
+    def get_elementary_school_districts(
+        self,
+        z: int,
+        x: int,
+        y: int,
+        administrative_area_code: Sequence[str] | str | None = None,
+    ) -> dict[str, Any]:
+        """Get elementary school districts (小学校区).
+        See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt004/ for details.
+        :param z: Zoom level (scale). 11 (city) ~ 15 (detail)
+        :param x: x value of tile coordinates.
+        :param y: y value of tile coordinates.
+        :param administrative_area_code: One municipality code, or a sequence of them.
+          Format: NNNNN. The same code table the price endpoints spell `city`.
+          See https://nlftp.mlit.go.jp/ksj/gml/codelist/AdminiBoundary_CD.xlsx
+          If not specified, the whole tile.
+        :return: Elementary school districts. (Response format: GeoJson)
+        :raises ValueError: If `z` is not between 11 and 15, or `administrative_area_code`
+          is empty.
+        """
+        return self._get_tile(
+            "XKT004",
+            z,
+            x,
+            y,
+            {"administrativeAreaCode": _join_codes(administrative_area_code)},
+        )
+
+    def get_junior_high_school_districts(
+        self,
+        z: int,
+        x: int,
+        y: int,
+        administrative_area_code: Sequence[str] | str | None = None,
+    ) -> dict[str, Any]:
+        """Get junior high school districts (中学校区).
+        See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt005/ for details.
+        :param z: Zoom level (scale). 11 (city) ~ 15 (detail)
+        :param x: x value of tile coordinates.
+        :param y: y value of tile coordinates.
+        :param administrative_area_code: One municipality code, or a sequence of them.
+          Format: NNNNN. The same code table the price endpoints spell `city`.
+          See https://nlftp.mlit.go.jp/ksj/gml/codelist/AdminiBoundary_CD.xlsx
+          If not specified, the whole tile.
+        :return: Junior high school districts. (Response format: GeoJson)
+        :raises ValueError: If `z` is not between 11 and 15, or `administrative_area_code`
+          is empty.
+        """
+        return self._get_tile(
+            "XKT005",
+            z,
+            x,
+            y,
+            {"administrativeAreaCode": _join_codes(administrative_area_code)},
+        )
+
     def get_schools(self, z: int, x: int, y: int) -> dict[str, Any]:
         """Get schools (学校).
         See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt006/ for details.
@@ -444,6 +500,61 @@ class Client:
         :raises ValueError: If `z` is not between 13 and 15.
         """
         return self._get_tile("XKT010", z, x, y, zoom_levels=range(13, 16))
+
+    def get_welfare_facilities(
+        self,
+        z: int,
+        x: int,
+        y: int,
+        administrative_area_code: Sequence[str] | str | None = None,
+        welfare_facility_class_code: Sequence[str] | str | None = None,
+        welfare_facility_middle_class_code: Sequence[str] | str | None = None,
+        welfare_facility_minor_class_code: Sequence[str] | str | None = None,
+    ) -> dict[str, Any]:
+        """Get welfare facilities (福祉施設).
+
+        The three class codes are one nested classification at three levels of detail, and
+        they are `str` rather than enums. Two of the seven major classes have no published
+        English name -- 身体障害者社会参加支援施設 and 母子・父子福祉施設 rest on the two
+        welfare acts that the Japanese Law Translation database does not carry -- and an enum
+        naming five of seven would leave the caller mixing members with bare strings for the
+        same argument. `area` and `city` are `str` for the same reason.
+        See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt011/ for details.
+        :param z: Zoom level (scale). 13 ~ 15 (detail)
+        :param x: x value of tile coordinates.
+        :param y: y value of tile coordinates.
+        :param administrative_area_code: One municipality code, or a sequence of them.
+          Format: NNNNN. The same code table the price endpoints spell `city`.
+          See https://nlftp.mlit.go.jp/ksj/gml/codelist/AdminiBoundary_CD.xlsx
+          If not specified, the whole tile.
+        :param welfare_facility_class_code: One major class code, or a sequence of them.
+          Format: NN. See
+          https://nlftp.mlit.go.jp/ksj/gml/codelist/welfareInstitution_welfareFacilityMajorClassificationCode.html
+          If not specified, every class.
+        :param welfare_facility_middle_class_code: One middle class code, or a sequence of
+          them. Format: NNNN. See
+          https://nlftp.mlit.go.jp/ksj/gml/codelist/welfareInstitution_welfareFacilityMiddleClassificationCode.html
+          If not specified, every class.
+        :param welfare_facility_minor_class_code: One minor class code, or a sequence of
+          them. Format: NNNNNN. See
+          https://nlftp.mlit.go.jp/ksj/gml/codelist/welfareInstitution_welfareFacilityMinorClassificationCode.html
+          If not specified, every class.
+        :return: Welfare facilities. (Response format: GeoJson)
+        :raises ValueError: If `z` is not between 13 and 15, or a code argument is empty.
+        """
+        return self._get_tile(
+            "XKT011",
+            z,
+            x,
+            y,
+            {
+                "administrativeAreaCode": _join_codes(administrative_area_code),
+                "welfareFacilityClassCode": _join_codes(welfare_facility_class_code),
+                "welfareFacilityMiddleClassCode": _join_codes(welfare_facility_middle_class_code),
+                "welfareFacilityMinorClassCode": _join_codes(welfare_facility_minor_class_code),
+            },
+            zoom_levels=range(13, 16),
+        )
 
     def get_future_population_estimates_by_250m_mesh(self, z: int, x: int, y: int) -> dict[str, Any]:
         """Get future population estimates by 250m mesh (将来推計人口250mメッシュ).
@@ -489,6 +600,35 @@ class Client:
         :raises ValueError: If `z` is not between 11 and 15.
         """
         return self._get_tile("XKT015", z, x, y)
+
+    def get_libraries(
+        self,
+        z: int,
+        x: int,
+        y: int,
+        administrative_area_code: Sequence[str] | str | None = None,
+    ) -> dict[str, Any]:
+        """Get libraries (図書館).
+        See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt017/ for details.
+        :param z: Zoom level (scale). 13 ~ 15 (detail)
+        :param x: x value of tile coordinates.
+        :param y: y value of tile coordinates.
+        :param administrative_area_code: One municipality code, or a sequence of them.
+          Format: NNNNN. The same code table the price endpoints spell `city`.
+          See https://nlftp.mlit.go.jp/ksj/gml/codelist/AdminiBoundary_CD.xlsx
+          If not specified, the whole tile.
+        :return: Libraries. (Response format: GeoJson)
+        :raises ValueError: If `z` is not between 13 and 15, or `administrative_area_code`
+          is empty.
+        """
+        return self._get_tile(
+            "XKT017",
+            z,
+            x,
+            y,
+            {"administrativeAreaCode": _join_codes(administrative_area_code)},
+            zoom_levels=range(13, 16),
+        )
 
     def get_municipal_offices_and_public_meeting_facilities_etc(self, z: int, x: int, y: int) -> dict[str, Any]:
         """Get municipal offices and public meeting facilities etc. (市区町村役場及び集会施設等).
