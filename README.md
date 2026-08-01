@@ -77,7 +77,7 @@ client.get_appraisal_reports(year=2024, area="13", division=UseDivision.INDUSTRI
 
 ### タイル座標だけで引くAPI
 
-タイル座標のみを取る13本は、引数が `z`, `x`, `y` だけです。
+タイル座標のみを取る14本は、引数が `z`, `x`, `y` だけです。
 
 | メソッド | ID | データ | ズーム |
 |---|---|---|---|
@@ -92,6 +92,7 @@ client.get_appraisal_reports(year=2024, area="13", division=UseDivision.INDUSTRI
 | `get_municipal_offices_and_public_meeting_facilities_etc` | XKT018 | 市区町村役場及び集会施設等 | 13〜15 |
 | `get_district_plans` | XKT023 | 地区計画 | 11〜15 |
 | `get_high_level_use_districts` | XKT024 | 高度利用地区 | 11〜15 |
+| `get_sediment_disaster_alert_areas` | XKT029 | 土砂災害警戒区域 | 11〜15 |
 | `get_city_planning_roads` | XKT030 | 都市計画道路 | 11〜15 |
 | `get_designated_emergency_evacuation_sites` | XGT001 | 指定緊急避難場所 | 11〜15 |
 
@@ -148,6 +149,16 @@ client.get_natural_park_areas(z=9, x=227, y=100, prefecture_code=["9", "11"])
 ```
 
 **このAPIのコードは先頭の0を付けません。** 栃木県は `"9"` で、`"09"` ではありません。不動産取引価格情報の `area` は `"09"` の形式なので、同じ都道府県コードでも綴りが違います。マニュアルが定めている形式なので、`"09"` を渡すと `ValueError` になります。API に送ると認識されないコードとして空のタイルが返り、自然公園がないタイルと区別が付かなくなるためです。
+
+### 地すべり防止地区
+
+`get_landslide_prevention_districts`（XKT021）は都道府県コードと行政コードで絞り込めます。どちらも任意です。
+
+```python
+client.get_landslide_prevention_districts(z=11, x=1819, y=806, prefecture_code="22")
+```
+
+**こちらの都道府県コードは先頭の0を付けます。** XKT019 とは逆で、静岡県は `"22"`、栃木県は `"09"` です。引数名も型も同じなので、区別はエンドポイントだけです。マニュアルの記載がそうなっているため、そのまま従っています。
 
 ## タイル座標
 
