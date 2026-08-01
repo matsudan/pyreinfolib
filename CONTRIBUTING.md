@@ -64,7 +64,7 @@ squash merge のみを使います。リポジトリ設定が `squash_merge_comm
 
 API 名は外部にある唯一の安定した共有語彙です。利用者が読むのは MLIT のマニュアルであって、このライブラリのソースではありません。マニュアルの API 一覧を見ている人が対応するメソッドを推測できる状態に価値があります。
 
-公開APIは38本あります。読みやすさを基準にすると38回の裁量判断が必要で、必ず途中でぶれます。
+公開APIは35本あります。読みやすさを基準にすると35回の裁量判断が必要で、必ず途中でぶれます。
 
 API 側が改称したとき、追随すべきかの判断がつきます。
 
@@ -203,6 +203,14 @@ class PriceClassification(StrEnum):
 | 普通地域 | ordinary area | 自然公園法33条 |
 | 指定緊急避難場所 | designated emergency evacuation site | 災害対策基本法第7章2節、49条の4（[laws/view/4171](https://www.japaneselawtranslation.go.jp/ja/laws/view/4171/je)） |
 | 指定避難所 | designated shelter | 災害対策基本法49条の7 |
+| 災害危険区域 | disaster risk area | 建築基準法39条（[laws/view/4024](https://www.japaneselawtranslation.go.jp/ja/laws/view/4024/je)） |
+| 都市計画施設 | city planning facility | 都市計画法4条6項 |
+| 都市計画事業 | city planning project | 都市計画法4条15項 |
+| 都市施設 | urban facility | 都市計画法4条5項 |
+| 都市計画道路 | city planning road | 都市計画法に定義なし。下記の通り合成 |
+| 人口集中地区 | densely inhabited district | [総務省統計局 英語ページ](https://www.stat.go.jp/english/data/jyutaku/25021.html) |
+
+**都市計画道路は合成した訳語です。** 都市計画法は 都市計画道路 を定義しておらず、都市計画施設として定められた道路の通称です。同法の訳が 都市計画施設 を `city planning facility`、都市計画事業 を `city planning project` としているので、`city planning` + 名詞 は同法自身の造語パターンです。道路 は11条1項1号の都市施設の一覧で `roads` です。12条の11には `roads that are city planning facilities` という言い方も出てきます。
 
 MLIT 用語集は `Land （Market） Value` と括弧付きで記載していますが、識別子に括弧は使えず、[MLIT の英語ページ](https://www.mlit.go.jp/en/totikensangyo/totikensangyo_fr4_000001.html)が括弧なしで運用しているため、括弧を外した形を採用します。
 
@@ -228,8 +236,7 @@ MLIT 用語集は `Land （Market） Value` と括弧付きで記載していま
 | 用語 | 典拠を探す先 | 用途 |
 |---|---|---|
 | 立地適正化計画 | 都市再生特別措置法（法令訳DBに収録なし） | XKT003 |
-| 災害危険区域 | 建築基準法39条 | XKT016 |
-| 大規模盛土造成地 | 国土交通省 | XKT020 |
+| 大規模盛土造成地マップ | 国土交通省 | XKT020 |
 | 地すべり防止区域 | 地すべり等防止法（法令訳DBに収録なし） | XKT021 |
 | 急傾斜地崩壊危険区域 | 急傾斜地法（法令訳DBに収録なし） | XKT022 |
 | 地形区分に基づく液状化の発生傾向図 | 国土交通省都市局 | XKT025 |
@@ -237,8 +244,6 @@ MLIT 用語集は `Land （Market） Value` と括弧付きで記載していま
 | 高潮浸水想定区域 | 水防法（法令訳DBに収録なし） | XKT027 |
 | 津波浸水想定 | 津波防災地域づくり法（法令訳DBに収録なし） | XKT028 |
 | 土砂災害警戒区域 | 土砂災害防止法（法令訳DBに収録なし） | XKT029 |
-| 都市計画道路 | 都市計画法（簡潔な定訳がなく判断が必要） | XKT030 |
-| 人口集中地区 | 総務省統計局（国勢調査英語版で Densely Inhabited District / DID が定着） | XKT031 |
 | 災害履歴 | 国土調査（土地履歴調査） | XST001 |
 
 **「法令訳DBに収録なし」は確認済みです。** 法令検索で法令名を引いて0件でした。優先順位1が使えないので、これらは3（所管省庁の英語版資料）に降りることになります。同じ確認を繰り返さないよう結果を残しています。
