@@ -32,7 +32,7 @@ CI が実行するのはこの5つです。
 # 2つのコード表は交換可能ではない
 client.get_real_estate_prices(
     year=2024,
-    price_classification=LandPriceClassification.LAND_PRICE_PUBLIC_NOTICE,  # ty: ignore[invalid-argument-type]
+    price_classification=LandPriceClassification.LAND_MARKET_VALUE_PUBLICATION,  # ty: ignore[invalid-argument-type]
 )
 ```
 
@@ -83,7 +83,7 @@ API 側が改称したとき、追随すべきかの判断がつきます。
 
 ### 長さは基準にしません
 
-手順の結果が長くても短縮しません。短縮するかを毎回判断すると、判断のぶれが名前のぶれになります。`get_land_price_public_notices_and_surveys_point` は規則を守った結果として正しい名前です。
+手順の結果が長くても短縮しません。短縮するかを毎回判断すると、判断のぶれが名前のぶれになります。`get_land_market_value_publication_and_research_point` は規則を守った結果として正しい名前です。
 
 ### 単数・複数
 
@@ -100,7 +100,7 @@ API 側が改称したとき、追随すべきかの判断がつきます。
 | XIT002 | 都道府県内市区町村一覧取得API | 都道府県内（手順6）、一覧取得 | `get_municipalities` |
 | XCT001 | 鑑定評価書情報API | 情報 | `get_appraisal_reports` |
 | XPT001 | 不動産価格（取引価格・成約価格）情報のポイント (点) API | 括弧（手順3）、情報 | `get_real_estate_prices_point` |
-| XPT002 | 地価公示・地価調査のポイント (点) API | なし | `get_land_price_public_notices_and_surveys_point` |
+| XPT002 | 地価公示・地価調査のポイント (点) API | なし | `get_land_market_value_publication_and_research_point` |
 | XKT015 | 国土数値情報（駅別乗降客数）API | 国土数値情報（手順2） | `get_number_of_passengers_per_station` |
 
 ## enum
@@ -136,8 +136,9 @@ class PriceClassification(StrEnum):
 ### 典拠の優先順位
 
 1. **[日本法令外国語訳データベースシステム](https://www.japaneselawtranslation.go.jp/)**（法務省）。今回必要な語の多くは法令用語で、政府公式訳が条文単位で日英対応しています
-2. **所管省庁の英語版資料**。法令用語でないもの（統計用語、データセット名）
-3. **既にこのライブラリで使っている訳語**。1と2で確認できないもの
+2. **[地価に関する国際的な情報発信の強化に向けた検討業務 調査報告書](https://www.mlit.go.jp/common/000214955.pdf)**（国土交通省 土地・建設産業局、平成24年3月）。地価公示・鑑定評価の語彙について、MLIT が統一的な英訳を提示する目的で作成した用語集です。地価関連語は法令訳DBより詳しく、DBの訳に対する明示的な注記もあります
+3. **所管省庁の英語版資料**。法令用語でないもの（統計用語、データセット名）
+4. **既にこのライブラリで使っている訳語**。1〜3で確認できないもの
 
 ### 確定
 
@@ -153,6 +154,18 @@ class PriceClassification(StrEnum):
 | 市街化区域 | urbanization promotion area | 都市計画法7条 |
 | 市街化調整区域 | urbanization control area | 都市計画法7条 |
 | 地区計画 | district plan | 都市計画法12条の4 |
+| 地価公示 | land market value publication | MLIT 用語集 200, 201（地価公示室 / 地価公示法） |
+| 地価調査 | land market value research | MLIT 用語集 205（地価調査課） |
+| 都道府県地価調査 | prefectural land market value research | MLIT 用語集 259 |
+| 標準地 | standard site | MLIT 用語集 275 |
+| 基準地 | standard site published by the prefectural government | MLIT 用語集 48 |
+| 土地鑑定委員会 | Land Appraisal Committee | [MLIT 英語ページ](https://www.mlit.go.jp/en/totikensangyo/totikensangyo_fr4_000001.html) |
+
+MLIT 用語集は `Land （Market） Value` と括弧付きで記載していますが、識別子に括弧は使えず、[MLIT の英語ページ](https://www.mlit.go.jp/en/totikensangyo/totikensangyo_fr4_000001.html)が括弧なしで運用しているため、括弧を外した形を採用します。
+
+**`public notice` は使いません。** MLIT 用語集 201 に「Public notice という訳もあるようだが、通達と紛らわしい」と、退けた理由が明記されています。英語ページも `Land price public notice system` を「以前の呼称」としています。
+
+**公示と調査は Publication と Research で区別します。** 用語集 259 の 都道府県地価調査 の訳は説明的な文章で、地価公示と同じ "publication" を使っています。そのまま識別子にすると2つのデータセットがほぼ同名になるため、組織名（地価公示室 / 地価調査課）の固有名詞形から採ります。
 
 用途地域の内訳（13種）も同じ典拠から取れます。第一種低層住居専用地域 = category 1 low-rise exclusive residential district、準住居地域 = quasi-residential district、田園住居地域 = countryside residential district、準工業地域 = quasi-industrial district、工業専用地域 = exclusive industrial district、ほか。
 
@@ -171,8 +184,6 @@ class PriceClassification(StrEnum):
 
 | 用語 | 典拠を探す先 | 用途 |
 |---|---|---|
-| 地価公示 | 地価公示法 | XPT002、既存名で `land_price_public_notice` を使用中（未検証） |
-| 都道府県地価調査 | 国土利用計画法施行令 | XPT002、既存名で `prefectural_land_price_survey` を使用中（未検証） |
 | 立地適正化計画 | 都市再生特別措置法 | XKT003 |
 | 災害危険区域 | 建築基準法39条 | XKT016 |
 | 自然公園地域 | 自然公園法 | XKT019 |
@@ -190,5 +201,3 @@ class PriceClassification(StrEnum):
 | 災害履歴 | 国土調査（土地履歴調査） | XST001 |
 
 XKT004〜018 の施設系（小学校区、学校、保育園・幼稚園等、医療機関、福祉施設、図書館、市区町村役場及び集会施設等）は一般語なので法令典拠は不要です。
-
-**地価公示 と 都道府県地価調査 は優先度が高いです。** 既に公開済みのメソッド名と enum メンバー名に使っているため、公式訳が違っていた場合の修正は破壊的変更になります。1.0 到達前に確定させてください。

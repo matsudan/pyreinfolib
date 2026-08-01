@@ -343,7 +343,7 @@ class Client:
             },
         )
 
-    def get_land_price_public_notices_and_surveys_point(
+    def get_land_market_value_publication_and_research_point(
         self,
         z: int,
         x: int,
@@ -352,8 +352,12 @@ class Client:
         price_classification: enums.LandPriceClassification | None = None,
         use_category_code: Sequence[enums.UseDivision] | enums.UseDivision | None = None,
     ) -> dict[str, Any]:
-        """Get land price public notices (standard land prices) and
-        prefectural land price surveys (benchmark land prices) point.
+        """Get land market value publication (地価公示) and land market value research
+        (地価調査) point.
+
+        Both surveys are published on this endpoint. `price_classification` selects one, or
+        leave it unset for both. The publication values market values of standard sites; the
+        research values the standard sites published by prefectural governments.
         See https://www.reinfolib.mlit.go.jp/help/apiManual/#titleApi8 for details.
         :param z: Zoom level (scale). 13 ~ 15 (detail)
         :param x: x value of tile coordinates.
@@ -361,12 +365,12 @@ class Client:
         :param year: target year.
         :param price_classification: Land price classification. Note that this is
           `LandPriceClassification`, a different code table from the `PriceClassification`
-          the real estate price endpoints take. If not specified, both land price public
-          notices and prefectural land price surveys.
+          the real estate price endpoints take. If not specified, both the publication and
+          the prefectural research.
         :param use_category_code: One use division code, or a sequence of them.
           See https://www.reinfolib.mlit.go.jp/help/apiManual/#titleApi8
-        :return: land price public notices (standard land prices) and
-        prefectural land price surveys (benchmark land prices) point. (Response format: GeoJson)
+        :return: Land market value publication and land market value research point.
+          (Response format: GeoJson)
         :raises ValueError: If `z` is not between 13 and 15, or `use_category_code` is empty.
         """
         return self._get_tile(
