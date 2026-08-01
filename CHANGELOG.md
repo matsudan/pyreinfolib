@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.5.0](https://github.com/matsudan/pyreinfolib/compare/v0.4.0...v0.5.0) (2026-08-01)
+
+
+### ⚠ BREAKING CHANGES
+
+* `get_land_price_public_notices_and_surveys_point` is now `get_land_market_value_publication_and_research_point`, and `LandPriceClassification.LAND_PRICE_PUBLIC_NOTICE` and `PREFECTURAL_LAND_PRICE_SURVEY` are now `LAND_MARKET_VALUE_PUBLICATION` and `PREFECTURAL_LAND_MARKET_VALUE_RESEARCH`. The codes and the behaviour are unchanged; only the names move.
+* a blank string argument now raises `ValueError` instead of being dropped. Pass `None`, or leave the argument out, to omit it; use `city=value or None` for a value that may be blank. An empty sequence of codes raises for the same reason.
+
+### Features
+
+* add tile coordinate helpers ([#43](https://github.com/matsudan/pyreinfolib/issues/43)) ([a17c887](https://github.com/matsudan/pyreinfolib/commit/a17c887e6b08bef1b3ee9c6aa39cf62ebf9044de))
+* reuse HTTP connections and retry throttled requests ([#42](https://github.com/matsudan/pyreinfolib/issues/42)) ([4f901d3](https://github.com/matsudan/pyreinfolib/commit/4f901d3378a226ca1c94a0124e17f485d97d4481))
+* use MLIT current terminology for the land price surveys ([#49](https://github.com/matsudan/pyreinfolib/issues/49)) ([ca260c8](https://github.com/matsudan/pyreinfolib/commit/ca260c81e4c6761d01a998a2ad6c433d5f4122eb))
+
+
+### Bug Fixes
+
+* accept a computed zoom level on the tile endpoints ([#45](https://github.com/matsudan/pyreinfolib/issues/45)) ([3af4a26](https://github.com/matsudan/pyreinfolib/commit/3af4a262c3b0be49d84462ee2c077eed9405b8ae))
+* refuse a blank argument instead of treating it as omitted ([#48](https://github.com/matsudan/pyreinfolib/issues/48)) ([a5e08ac](https://github.com/matsudan/pyreinfolib/commit/a5e08ac57d5888c1fa4c1c0b30aa76998fe92cad))
+
+
+### Documentation
+
+* document the naming rule and the terminology glossary ([#40](https://github.com/matsudan/pyreinfolib/issues/40)) ([8cadbf9](https://github.com/matsudan/pyreinfolib/commit/8cadbf98768708c54cd01591f73950def5ca9e76))
+* record the pull request description format ([#47](https://github.com/matsudan/pyreinfolib/issues/47)) ([183949d](https://github.com/matsudan/pyreinfolib/commit/183949dfb8bef111b64c962c15a134592a8a337d))
+* say how a shared term in a coordinated name is handled ([#50](https://github.com/matsudan/pyreinfolib/issues/50)) ([1dd96c5](https://github.com/matsudan/pyreinfolib/commit/1dd96c5110fdb181907bd8c31e6e65fca3767c93))
+
 ## [0.4.0](https://github.com/matsudan/pyreinfolib/compare/v0.3.0...v0.4.0) (2026-07-31)
 
 
