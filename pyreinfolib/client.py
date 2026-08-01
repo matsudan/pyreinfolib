@@ -387,6 +387,93 @@ class Client:
             zoom_levels=range(13, 16),
         )
 
+    def get_city_planning_areas_and_area_classification(self, z: int, x: int, y: int) -> dict[str, Any]:
+        """Get city planning areas (都市計画区域) and area classification (区域区分).
+
+        Area classification is the division of a city planning area into an urbanization
+        promotion area and an urbanization control area.
+        See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt001/ for details.
+        :param z: Zoom level (scale). 11 (city) ~ 15 (detail)
+        :param x: x value of tile coordinates.
+        :param y: y value of tile coordinates.
+        :return: City planning areas and area classification. (Response format: GeoJson)
+        :raises ValueError: If `z` is not between 11 and 15.
+        """
+        return self._get_tile("XKT001", z, x, y)
+
+    def get_use_districts(self, z: int, x: int, y: int) -> dict[str, Any]:
+        """Get use districts (用途地域).
+        See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt002/ for details.
+        :param z: Zoom level (scale). 11 (city) ~ 15 (detail)
+        :param x: x value of tile coordinates.
+        :param y: y value of tile coordinates.
+        :return: Use districts. (Response format: GeoJson)
+        :raises ValueError: If `z` is not between 11 and 15.
+        """
+        return self._get_tile("XKT002", z, x, y)
+
+    def get_schools(self, z: int, x: int, y: int) -> dict[str, Any]:
+        """Get schools (学校).
+        See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt006/ for details.
+        :param z: Zoom level (scale). 13 ~ 15 (detail)
+        :param x: x value of tile coordinates.
+        :param y: y value of tile coordinates.
+        :return: Schools. (Response format: GeoJson)
+        :raises ValueError: If `z` is not between 13 and 15.
+        """
+        return self._get_tile("XKT006", z, x, y, zoom_levels=range(13, 16))
+
+    def get_nursery_schools_and_kindergartens_etc(self, z: int, x: int, y: int) -> dict[str, Any]:
+        """Get nursery schools and kindergartens etc. (保育園・幼稚園等).
+        See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt007/ for details.
+        :param z: Zoom level (scale). 13 ~ 15 (detail)
+        :param x: x value of tile coordinates.
+        :param y: y value of tile coordinates.
+        :return: Nursery schools and kindergartens etc. (Response format: GeoJson)
+        :raises ValueError: If `z` is not between 13 and 15.
+        """
+        return self._get_tile("XKT007", z, x, y, zoom_levels=range(13, 16))
+
+    def get_medical_institutions(self, z: int, x: int, y: int) -> dict[str, Any]:
+        """Get medical institutions (医療機関).
+        See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt010/ for details.
+        :param z: Zoom level (scale). 13 ~ 15 (detail)
+        :param x: x value of tile coordinates.
+        :param y: y value of tile coordinates.
+        :return: Medical institutions. (Response format: GeoJson)
+        :raises ValueError: If `z` is not between 13 and 15.
+        """
+        return self._get_tile("XKT010", z, x, y, zoom_levels=range(13, 16))
+
+    def get_future_population_estimates_by_250m_mesh(self, z: int, x: int, y: int) -> dict[str, Any]:
+        """Get future population estimates by 250m mesh (将来推計人口250mメッシュ).
+        See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt013/ for details.
+        :param z: Zoom level (scale). 11 (city) ~ 15 (detail)
+        :param x: x value of tile coordinates.
+        :param y: y value of tile coordinates.
+        :return: Future population estimates by 250m mesh. (Response format: GeoJson)
+        :raises ValueError: If `z` is not between 11 and 15.
+        """
+        return self._get_tile("XKT013", z, x, y)
+
+    def get_fire_prevention_districts_and_quasi_fire_prevention_districts(
+        self, z: int, x: int, y: int
+    ) -> dict[str, Any]:
+        """Get fire prevention districts and quasi-fire prevention districts (防火・準防火地域).
+
+        `districts` twice, although the Japanese writes 地域 once. That is how the Building
+        Standards Act translation renders the pair, and it keeps `Fire Prevention District`
+        intact as the term the Act defines.
+        See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt014/ for details.
+        :param z: Zoom level (scale). 11 (city) ~ 15 (detail)
+        :param x: x value of tile coordinates.
+        :param y: y value of tile coordinates.
+        :return: Fire prevention districts and quasi-fire prevention districts.
+          (Response format: GeoJson)
+        :raises ValueError: If `z` is not between 11 and 15.
+        """
+        return self._get_tile("XKT014", z, x, y)
+
     def get_number_of_passengers_per_station(
         self,
         z: int,
@@ -394,7 +481,7 @@ class Client:
         y: int,
     ) -> dict[str, Any]:
         """Get number of passengers per station.
-        See https://www.reinfolib.mlit.go.jp/help/apiManual/#titleApi20 for details.
+        See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt015/ for details.
         :param z: Zoom level (scale). 11 (city) ~ 15 (detail)
         :param x: x value of tile coordinates.
         :param y: y value of tile coordinates.
@@ -402,3 +489,36 @@ class Client:
         :raises ValueError: If `z` is not between 11 and 15.
         """
         return self._get_tile("XKT015", z, x, y)
+
+    def get_municipal_offices_and_public_meeting_facilities_etc(self, z: int, x: int, y: int) -> dict[str, Any]:
+        """Get municipal offices and public meeting facilities etc. (市区町村役場及び集会施設等).
+        See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt018/ for details.
+        :param z: Zoom level (scale). 13 ~ 15 (detail)
+        :param x: x value of tile coordinates.
+        :param y: y value of tile coordinates.
+        :return: Municipal offices and public meeting facilities etc. (Response format: GeoJson)
+        :raises ValueError: If `z` is not between 13 and 15.
+        """
+        return self._get_tile("XKT018", z, x, y, zoom_levels=range(13, 16))
+
+    def get_district_plans(self, z: int, x: int, y: int) -> dict[str, Any]:
+        """Get district plans (地区計画).
+        See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt023/ for details.
+        :param z: Zoom level (scale). 11 (city) ~ 15 (detail)
+        :param x: x value of tile coordinates.
+        :param y: y value of tile coordinates.
+        :return: District plans. (Response format: GeoJson)
+        :raises ValueError: If `z` is not between 11 and 15.
+        """
+        return self._get_tile("XKT023", z, x, y)
+
+    def get_high_level_use_districts(self, z: int, x: int, y: int) -> dict[str, Any]:
+        """Get high-level use districts (高度利用地区).
+        See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt024/ for details.
+        :param z: Zoom level (scale). 11 (city) ~ 15 (detail)
+        :param x: x value of tile coordinates.
+        :param y: y value of tile coordinates.
+        :return: High-level use districts. (Response format: GeoJson)
+        :raises ValueError: If `z` is not between 11 and 15.
+        """
+        return self._get_tile("XKT024", z, x, y)

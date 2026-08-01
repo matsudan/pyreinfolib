@@ -69,6 +69,30 @@ from pyreinfolib.enums import UseDivision
 client.get_appraisal_reports(year=2024, area="13", division=UseDivision.INDUSTRIAL_LAND)
 ```
 
+### タイル座標だけで引くAPI
+
+タイル座標のみを取る11本は、引数が `z`, `x`, `y` だけです。
+
+| メソッド | ID | データ | ズーム |
+|---|---|---|---|
+| `get_city_planning_areas_and_area_classification` | XKT001 | 都市計画区域/区域区分 | 11〜15 |
+| `get_use_districts` | XKT002 | 用途地域 | 11〜15 |
+| `get_schools` | XKT006 | 学校 | 13〜15 |
+| `get_nursery_schools_and_kindergartens_etc` | XKT007 | 保育園・幼稚園等 | 13〜15 |
+| `get_medical_institutions` | XKT010 | 医療機関 | 13〜15 |
+| `get_future_population_estimates_by_250m_mesh` | XKT013 | 将来推計人口250mメッシュ | 11〜15 |
+| `get_fire_prevention_districts_and_quasi_fire_prevention_districts` | XKT014 | 防火・準防火地域 | 11〜15 |
+| `get_number_of_passengers_per_station` | XKT015 | 駅別乗降客数 | 11〜15 |
+| `get_municipal_offices_and_public_meeting_facilities_etc` | XKT018 | 市区町村役場及び集会施設等 | 13〜15 |
+| `get_district_plans` | XKT023 | 地区計画 | 11〜15 |
+| `get_high_level_use_districts` | XKT024 | 高度利用地区 | 11〜15 |
+
+```python
+from pyreinfolib import tiles
+
+client.get_use_districts(*tiles.containing(lon=139.7016, lat=35.6580, z=15))
+```
+
 ## タイル座標
 
 公開APIの多くは場所ではなく XYZ タイル座標で引きます。緯度経度から変換するために `pyreinfolib.tiles` を用意しています。ネットワークもAPIキーも不要な純粋関数です。

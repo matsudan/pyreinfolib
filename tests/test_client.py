@@ -9,7 +9,7 @@ from helpers import params_of
 from requests.adapters import HTTPAdapter
 from urllib3.util import Retry
 
-from pyreinfolib import Client
+from pyreinfolib import Client, tiles
 from pyreinfolib.enums import LandPriceClassification, LandTypeCode, PriceClassification, UseDivision
 from pyreinfolib.exceptions import (
     APIError,
@@ -820,3 +820,95 @@ class TestBlankArguments:
         client.get_number_of_passengers_per_station(z=11, x=0, y=0)
 
         assert params_of(mock_api.calls[0].request)["x"] == "0"
+
+
+# Endpoints that take nothing but the tile coordinates, with the zoom levels their manual page
+# documents. The zoom range is the only thing that varies between them, and it is the only
+# thing about them that can be got wrong without the request failing outright: too low or too
+# high is refused locally, but a range that is wrong in the other direction would refuse a
+# level the API serves.
+TILE_ONLY_ENDPOINTS = [
+    ("get_city_planning_areas_and_area_classification", "XKT001", range(11, 16)),
+    ("get_use_districts", "XKT002", range(11, 16)),
+    ("get_schools", "XKT006", range(13, 16)),
+    ("get_nursery_schools_and_kindergartens_etc", "XKT007", range(13, 16)),
+    ("get_medical_institutions", "XKT010", range(13, 16)),
+    ("get_future_population_estimates_by_250m_mesh", "XKT013", range(11, 16)),
+    ("get_fire_prevention_districts_and_quasi_fire_prevention_districts", "XKT014", range(11, 16)),
+    ("get_number_of_passengers_per_station", "XKT015", range(11, 16)),
+    ("get_municipal_offices_and_public_meeting_facilities_etc", "XKT018", range(13, 16)),
+    ("get_district_plans", "XKT023", range(11, 16)),
+    ("get_high_level_use_districts", "XKT024", range(11, 16)),
+]
+TILE_ONLY_ENDPOINT_IDS = [endpoint for _, endpoint, _ in TILE_ONLY_ENDPOINTS]
+
+
+class TestTileOnlyEndpoints:
+    @pytest.mark.parametrize(
+        ("method_name", "endpoint", "zoom_levels"), TILE_ONLY_ENDPOINTS, ids=TILE_ONLY_ENDPOINT_IDS
+    )
+    def test_it_requests_its_own_endpoint_with_the_shared_parameters(
+        self, mock_api, client, method_name, endpoint, zoom_levels
+    ):
+        """The endpoint id is the one thing a copied method body gets wrong silently.
+
+        Every one of these has the same shape, so a paste that kept the previous id would
+        return plausible GeoJson from the wrong dataset.
+        """
+        mock_api.get(f"{BASE_URL}{endpoint}", json=DUMMY_RESPONSE)
+
+        assert getattr(client, method_name)(z=zoom_levels[0], x=1819, y=806) == DUMMY_RESPONSE
+
+        request = mock_api.calls[0].request
+        assert request.url.split("?")[0] == f"{BASE_URL}{endpoint}"
+        assert request.headers["Ocp-Apim-Subscription-Key"] == API_KEY
+        assert params_of(request) == {
+            "response_format": "geojson",
+            "z": str(zoom_levels[0]),
+            "x": "1819",
+            "y": "806",
+        }
+
+    @pytest.mark.parametrize(
+        ("method_name", "endpoint", "zoom_levels"), TILE_ONLY_ENDPOINTS, ids=TILE_ONLY_ENDPOINT_IDS
+    )
+    def test_it_accepts_every_zoom_level_its_manual_page_documents(
+        self, mock_api, client, method_name, endpoint, zoom_levels
+    ):
+        for _ in zoom_levels:
+            mock_api.get(f"{BASE_URL}{endpoint}", json=DUMMY_RESPONSE)
+
+        for z in zoom_levels:
+            getattr(client, method_name)(z=z, x=1819, y=806)
+
+        assert len(mock_api.calls) == len(zoom_levels)
+
+    @pytest.mark.parametrize(
+        ("method_name", "endpoint", "zoom_levels"), TILE_ONLY_ENDPOINTS, ids=TILE_ONLY_ENDPOINT_IDS
+    )
+    def test_it_refuses_a_zoom_level_outside_that_range(self, mock_api, client, method_name, endpoint, zoom_levels):
+        for z in (zoom_levels.start - 1, zoom_levels[-1] + 1):
+            with pytest.raises(ValueError, match=endpoint):
+                getattr(client, method_name)(z=z, x=1819, y=806)
+
+    def test_the_endpoints_taking_thirteen_and_up_are_the_documented_ones(self, client):
+        """Pinned as a set so that a range copied from the neighbouring method is visible.
+
+        These four differ from the rest, and nothing about a wrong range shows up in a
+        response: the request simply never leaves.
+        """
+        narrower = {endpoint for _, endpoint, levels in TILE_ONLY_ENDPOINTS if levels.start == 13}
+
+        assert narrower == {"XKT006", "XKT007", "XKT010", "XKT018"}
+
+    def test_a_tile_from_the_helpers_reaches_every_one_of_them(self, mock_api, client):
+        """`*tile` has to keep working as endpoints are added, not just for the first three."""
+        tile = tiles.containing(lon=139.7016, lat=35.6580, z=15)
+
+        for _, endpoint, _ in TILE_ONLY_ENDPOINTS:
+            mock_api.get(f"{BASE_URL}{endpoint}", json=DUMMY_RESPONSE)
+
+        for method_name, _, _ in TILE_ONLY_ENDPOINTS:
+            getattr(client, method_name)(*tile)
+
+        assert len(mock_api.calls) == len(TILE_ONLY_ENDPOINTS)
