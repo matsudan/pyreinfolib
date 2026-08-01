@@ -438,6 +438,27 @@ class Client:
         """
         return self._get_tile("XKT002", z, x, y)
 
+    def get_location_normalization_plans(self, z: int, x: int, y: int) -> dict[str, Any]:
+        """Get location normalization plans (立地適正化計画).
+
+        A municipality's plan under the Act on Special Measures Concerning Urban Renaissance
+        for guiding housing and urban services into designated areas, so that the city stays
+        serviceable as its population falls. The response carries the plan area, and the
+        residence and urban function areas it guides into.
+
+        `location normalization plan` rests on secondary sources. The Act is absent from the
+        Japanese Law Translation database, and 適正化 has no sourced translation to compose
+        from, so this is the term the literature uses and attributes to MLIT. CONTRIBUTING.md
+        records the evidence and what was searched without finding the primary page.
+        See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt003/ for details.
+        :param z: Zoom level (scale). 11 (city) ~ 15 (detail)
+        :param x: x value of tile coordinates.
+        :param y: y value of tile coordinates.
+        :return: Location normalization plans. (Response format: GeoJson)
+        :raises ValueError: If `z` is not between 11 and 15.
+        """
+        return self._get_tile("XKT003", z, x, y)
+
     def get_elementary_school_districts(
         self,
         z: int,

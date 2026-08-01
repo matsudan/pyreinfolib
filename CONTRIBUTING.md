@@ -173,7 +173,22 @@ class PriceClassification(StrEnum):
 3. **所管省庁の英語版資料**。法令用語でないもの（統計用語、データセット名）
 4. **既にこのライブラリで使っている訳語**。1〜3で確認できないもの
 
-1〜4のどこにも訳語がない語があります。根拠法が法令訳DBに未収録で、所管省庁の英語資料も旧称のまま揺れている場合です。訳語を発明せず、その語を名前にしない設計を選んでください。コード表なら「[enum にするか `str` にするか](#enum-にするか-str-にするか)」の通り `str` のままにします。
+### 優先順位のどこにも訳語がないとき
+
+根拠法が法令訳DBに未収録で、所管省庁の英語資料も旧称のまま揺れている語があります。**どの段階でも訳語を発明しないでください。** 次の順に試します。
+
+1. **その語を名前にしない設計を選ぶ。** コード表なら `str` のままにできます（[enum にするか `str` にするか](#enum-にするか-str-にするか)）。メソッド名は避けようがないので、この手は使えません
+2. **典拠のある部品から合成する。** 根拠法自身の造語パターンに従ってください。都市計画道路 は同法の 都市計画施設 = `city planning facility`、都市計画事業 = `city planning project` というパターンに、11条1項1号の 道路 = `roads` を入れて `city planning road` としています。部品のどちらかに典拠がなければ使えません
+3. **二次資料で定着している訳語を採る。** 政府資料が原典として挙げられていて、かつ競合候補がない場合に限ります。立地適正化計画 = `location normalization plan` がこれです
+4. **実装を保留する。** 上のどれも使えないとき
+
+**どの段階で決めたか、そして空振りした当たり先を用語集に書いてください。** 原典が後から出てきたときに見直せます。当たり先を書き残さないと、次の人が同じ検索を繰り返します。
+
+### API 名と公定訳が食い違うときは API 名に従います
+
+XKT021 のデータセット名は 地すべり防止**地区** ですが、実体は地すべり等防止法3条の 地すべり防止**区域** で、公定訳は `landslide prevention area` です。メソッド名は `get_landslide_prevention_districts` にしています。
+
+[命名](#命名)に書いた理由の通り、利用者が読むのは MLIT のマニュアルです。マニュアルの語からメソッドに辿り着ける方を採ります。**食い違いは docstring に書いてください。** 名前だけでは、公定訳を知っている人が誤りだと思います。
 
 ### 確定
 
@@ -212,6 +227,23 @@ class PriceClassification(StrEnum):
 | 地すべり防止区域 | landslide prevention area | 都市計画法33条1項8号（[laws/view/3841](https://www.japaneselawtranslation.go.jp/ja/laws/view/3841/je)） |
 | 土砂災害警戒区域 | sediment disaster alert area | 土砂災害防止法の英語題名。都市計画法33条1項8号で引用 |
 | 土砂災害特別警戒区域 | sediment disaster special alert area | 都市計画法33条1項8号 |
+| 立地適正化計画 | location normalization plan | 二次資料のみ。下記の通り |
+
+### 立地適正化計画は二次資料で決めています
+
+[優先順位のどこにも訳語がないとき](#優先順位のどこにも訳語がないとき)の手順3に当たる唯一の語です。`適正化` 単体の訳語典拠がないため、手順2の合成も使えませんでした。
+
+**採った根拠**
+
+- [ジャパンシステムのコラム](https://www.japan-systems.co.jp/column/%E9%83%BD%E5%B8%82%E8%A8%88%E7%94%BB%E3%81%A8%E5%85%AC%E5%85%B1%E6%96%BD%E8%A8%AD%E3%83%9E%E3%83%8D%E3%82%B8%E3%83%A1%E3%83%B3%E3%83%88%E3%82%B3%E3%83%A9%E3%83%A0%E2%91%A1%E3%80%8C%E7%AB%8B%E5%9C%B0/)（2016年、首都大学東京の都市計画研究者）が「国交省資料によると英語では Location Normalization Plan と呼ばれる」と書き、脚注で `Major Efforts Made in the Fields of National Land and Transportation` という MLIT の英語ページを原典に挙げています
+- 査読文献で定着しています。[Sustainability 2020](https://www.mdpi.com/2071-1050/12/3/989/xml)、[Sustainability 2021](https://www.mdpi.com/2071-1050/13/23/13107/xml)（`the Location Normalization Plan (LNP)` と略称まで定義）
+- 競合候補がありません。政府資料にも査読文献にも別の訳は見つかりませんでした
+
+**空振りした当たり先**（原典の MLIT ページには到達できていません）
+
+MLIT 英語トップ（現行と2016年9月3日の Wayback スナップショット）、City Bureau 英語索引 `/en/toshi/index.html`、同索引がリンクする `/common/000996976.pdf`、`/en/toshi/city_plan/compactcity_network.html` と配下の `/en/` PDF（中身は日本語）、英訳パンフ `/common/001048781.pdf`（低炭素まちづくり計画の資料）、Wayback CDX の `mlit.go.jp/en/*effort*`（0件）。
+
+なお City Bureau 英語索引は `Act on Special Measures Concerning Urban Renaissance` と `City Planning Act` を掲げていて、法令訳DBの引用から取った題名と一致します。法令名の方は二重に典拠が付いています。
 
 ### 未翻訳の法令の英語題名は、翻訳済みの法令の引用から取れます
 
@@ -253,7 +285,6 @@ MLIT 用語集は `Land （Market） Value` と括弧付きで記載していま
 
 | 用語 | 典拠を探す先 | 用途 |
 |---|---|---|
-| 立地適正化計画 | 都市再生特別措置法（法令訳DBに収録なし） | XKT003 |
 | 大規模盛土造成地マップ | 国土交通省 | XKT020 |
 | 急傾斜地崩壊危険区域 | 急傾斜地法（法令訳DBに収録なし。翻訳済み法令からの引用も見つからない） | XKT022 |
 | 地形区分に基づく液状化の発生傾向図 | 国土交通省都市局 | XKT025 |

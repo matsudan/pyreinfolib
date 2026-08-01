@@ -67,6 +67,7 @@ def tile_endpoints_from_a_point(client: Client) -> None:
     client.get_city_planning_roads(*tile)
     client.get_landslide_prevention_districts(*tile)
     client.get_sediment_disaster_alert_areas(*tile)
+    client.get_location_normalization_plans(*tile)
 
 
 def tile_endpoints_over_an_extent(client: Client) -> None:
