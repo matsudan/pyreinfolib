@@ -5,6 +5,8 @@ from typing import Any
 import pytest
 import requests
 import responses
+from helpers import params_of
+from requests.adapters import HTTPAdapter
 from urllib3.util import Retry
 
 from pyreinfolib import Client
@@ -72,6 +74,9 @@ def client():
 def retries_of(client: Client) -> Retry:
     """The retry policy the client actually mounted, as the transport sees it."""
     adapter = client._session.get_adapter(BASE_URL)
+    # `get_adapter` is typed as returning the `BaseAdapter` interface, which carries no
+    # retry policy. Narrowing to the concrete adapter is what makes `max_retries` reachable.
+    assert isinstance(adapter, HTTPAdapter)
     assert isinstance(adapter.max_retries, Retry)
     return adapter.max_retries
 
@@ -85,9 +90,10 @@ def assert_request(mock_api: responses.RequestsMock, method: Callable, endpoint:
 
     assert len(mock_api.calls) == 1
     request = mock_api.calls[0].request
+    assert request.url is not None
     assert request.url.split("?")[0] == url
     assert request.headers["Ocp-Apim-Subscription-Key"] == API_KEY
-    assert request.params == case.expected_params
+    assert params_of(request) == case.expected_params
 
 
 class TestClient:
@@ -633,7 +639,7 @@ class TestClient:
 
         getattr(client, method_name)(**args)
 
-        params = mock_api.calls[0].request.params
+        params = params_of(mock_api.calls[0].request)
         assert params["response_format"] == "geojson"
         assert params["z"] == str(args["z"])
         assert params["x"] == str(args["x"])
