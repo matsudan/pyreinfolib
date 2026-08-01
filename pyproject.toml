@@ -50,6 +50,11 @@ dev = [
     "pytest-cov>=6.3.0",
     "responses>=0.25.8",
     "ruff>=0.12.12",
+    # Pinned exactly, unlike the others. ty is pre-1.0 and its own documentation states that
+    # breaking changes, diagnostics included, can land between any two 0.0.x releases. A lower
+    # bound would let a patch update turn CI red without a change to this repository.
+    # Dependabot proposes the bump; the diff gets read at that point.
+    "ty==0.0.65",
 ]
 
 [tool.ruff]
@@ -78,3 +83,8 @@ line-ending = "auto"
 
 [tool.pytest.ini_options]
 addopts = "-v --cov=pyreinfolib --cov-branch"
+
+[tool.ty.environment]
+# The floor this package supports. Without it ty checks against whichever interpreter it
+# happens to run under, which would hide a 3.11 problem when run on 3.12.
+python-version = "3.11"

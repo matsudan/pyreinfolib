@@ -2,6 +2,7 @@ from collections.abc import Iterator
 
 import pytest
 import responses
+from helpers import params_of
 
 from pyreinfolib import Client
 from pyreinfolib.tiles import MAX_LATITUDE, Bounds, Tile, bounds, containing, count_covering, covering
@@ -233,7 +234,7 @@ class TestTile:
             with Client(api_key="dummy") as client:
                 client.get_number_of_passengers_per_station(*tile)
 
-            params = mock_api.calls[0].request.params
+            params = params_of(mock_api.calls[0].request)
 
         assert params["z"] == str(tile.z)
         assert params["x"] == str(tile.x)

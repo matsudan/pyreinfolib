@@ -6,10 +6,35 @@
 uv sync --locked
 uv run ruff check .
 uv run ruff format --check .
+uv run ty check
 uv run pytest
 ```
 
-CI が実行するのはこの4つです。型情報を同梱しているため（[PEP 561](https://peps.python.org/pep-0561/)）、型注釈は公開APIの一部として扱います。
+CI が実行するのはこの5つです。
+
+## 型チェック
+
+型情報を同梱しているため（[PEP 561](https://peps.python.org/pep-0561/)）、**型注釈は公開APIの一部**です。破ればテストが通っていても利用者が壊れます。
+
+型チェッカーは [ty](https://github.com/astral-sh/ty) です。mypy と Pyrefly と比較して選定し、実際に過去のバグを検出できることを確認した上で採用しています。
+
+`pyproject.toml` で **バージョンを厳密に固定**しています（`ty==0.0.65`）。他の開発依存は下限指定ですが、ty は pre-1.0 で、診断内容を含む破壊的変更が任意の 0.0.x 間で起こりうると公式に明記されています。下限指定にすると、このリポジトリを変更していないのにパッチ更新で CI が赤くなります。更新は Dependabot に提案させて、そのとき差分を読んでください。
+
+### `tests/typing_usage.py`
+
+**`pyreinfolib` だけを検査しても不十分です。** #45 のズームレベルのバグは、パッケージ内部では整合していて実行時テストも全部通る一方、README が書いている `client.get_...(*tile)` と `tiles.covering()` のループが型チェッカーに拒否される状態でした。エラーは呼び出し側にしか現れません。
+
+そのため `tests/typing_usage.py` に**利用者が書くとおりのコード**を置いて検査対象にしています。テストモジュールではなく、実行もされません。README が推奨する書き方を追加したら、ここにも足してください。ここが通らなくなったらドキュメントが嘘をついています。
+
+拒否されるべきものは `# ty: ignore[...]` を付けて記録しています。`ty check` は何も抑制しなかった ignore を報告し、warning でも実行が失敗するため、**拒否されなくなったら CI が落ちます**。
+
+```python
+# 2つのコード表は交換可能ではない
+client.get_real_estate_prices(
+    year=2024,
+    price_classification=LandPriceClassification.LAND_PRICE_PUBLIC_NOTICE,  # ty: ignore[invalid-argument-type]
+)
+```
 
 ## プルリクエスト
 
