@@ -60,6 +60,8 @@ def tile_endpoints_from_a_point(client: Client) -> None:
     client.get_junior_high_school_districts(*tile)
     client.get_libraries(*tile)
     client.get_welfare_facilities(*tile)
+    client.get_natural_park_areas(*tile)
+    client.get_designated_emergency_evacuation_sites(*tile)
 
 
 def tile_endpoints_over_an_extent(client: Client) -> None:
@@ -136,6 +138,11 @@ def municipality_code_filters(client: Client) -> None:
         welfare_facility_middle_class_code="0101",
         welfare_facility_minor_class_code=["020101", "020102"],
     )
+
+    # XKT019 writes the same prefecture as `9` rather than `09`. Both filters are `str` like
+    # the rest, so the padding rule is a runtime check rather than something a type says.
+    client.get_natural_park_areas(z=9, x=227, y=100, prefecture_code="9")
+    client.get_natural_park_areas(z=9, x=227, y=100, prefecture_code=["9", "11"], district_code="10")
 
 
 def error_handling(client: Client) -> None:

@@ -195,6 +195,14 @@ class PriceClassification(StrEnum):
 | 標準地 | standard site | MLIT 用語集 275 |
 | 基準地 | standard site published by the prefectural government | MLIT 用語集 48 |
 | 土地鑑定委員会 | Land Appraisal Committee | [MLIT 英語ページ](https://www.mlit.go.jp/en/totikensangyo/totikensangyo_fr4_000001.html) |
+| 自然公園 | natural park | 自然公園法2条1号（[laws/view/3060](https://www.japaneselawtranslation.go.jp/ja/laws/view/3060/je)） |
+| 国立公園 | national park | 自然公園法2条2号 |
+| 国定公園 | quasi-national park | 自然公園法2条3号 |
+| 都道府県立自然公園 | prefectural natural park | 自然公園法2条4号 |
+| 特別地域 | special area | 自然公園法20条 |
+| 普通地域 | ordinary area | 自然公園法33条 |
+| 指定緊急避難場所 | designated emergency evacuation site | 災害対策基本法第7章2節、49条の4（[laws/view/4171](https://www.japaneselawtranslation.go.jp/ja/laws/view/4171/je)） |
+| 指定避難所 | designated shelter | 災害対策基本法49条の7 |
 
 MLIT 用語集は `Land （Market） Value` と括弧付きで記載していますが、識別子に括弧は使えず、[MLIT の英語ページ](https://www.mlit.go.jp/en/totikensangyo/totikensangyo_fr4_000001.html)が括弧なしで運用しているため、括弧を外した形を採用します。
 
@@ -219,21 +227,23 @@ MLIT 用語集は `Land （Market） Value` と括弧付きで記載していま
 
 | 用語 | 典拠を探す先 | 用途 |
 |---|---|---|
-| 立地適正化計画 | 都市再生特別措置法 | XKT003 |
+| 立地適正化計画 | 都市再生特別措置法（法令訳DBに収録なし） | XKT003 |
 | 災害危険区域 | 建築基準法39条 | XKT016 |
-| 自然公園地域 | 自然公園法 | XKT019 |
 | 大規模盛土造成地 | 国土交通省 | XKT020 |
-| 地すべり防止区域 | 地すべり等防止法 | XKT021 |
-| 急傾斜地崩壊危険区域 | 急傾斜地法 | XKT022 |
+| 地すべり防止区域 | 地すべり等防止法（法令訳DBに収録なし） | XKT021 |
+| 急傾斜地崩壊危険区域 | 急傾斜地法（法令訳DBに収録なし） | XKT022 |
 | 地形区分に基づく液状化の発生傾向図 | 国土交通省都市局 | XKT025 |
-| 洪水浸水想定区域 | 水防法 | XKT026 |
-| 高潮浸水想定区域 | 水防法 | XKT027 |
-| 津波浸水想定 | 津波防災地域づくり法 | XKT028 |
-| 土砂災害警戒区域 | 土砂災害防止法 | XKT029 |
+| 洪水浸水想定区域 | 水防法（法令訳DBに収録なし） | XKT026 |
+| 高潮浸水想定区域 | 水防法（法令訳DBに収録なし） | XKT027 |
+| 津波浸水想定 | 津波防災地域づくり法（法令訳DBに収録なし） | XKT028 |
+| 土砂災害警戒区域 | 土砂災害防止法（法令訳DBに収録なし） | XKT029 |
 | 都市計画道路 | 都市計画法（簡潔な定訳がなく判断が必要） | XKT030 |
 | 人口集中地区 | 総務省統計局（国勢調査英語版で Densely Inhabited District / DID が定着） | XKT031 |
-| 指定緊急避難場所 | 災害対策基本法 | XGT001 |
 | 災害履歴 | 国土調査（土地履歴調査） | XST001 |
+
+**「法令訳DBに収録なし」は確認済みです。** 法令検索で法令名を引いて0件でした。優先順位1が使えないので、これらは3（所管省庁の英語版資料）に降りることになります。同じ確認を繰り返さないよう結果を残しています。
+
+法令訳DBの引き方は、法令名から翻訳IDを引いて `https://www.japaneselawtranslation.go.jp/ja/laws/view/{id}/je` を開きます。対訳ページは日本語と英語の div が交互に並ぶので、定義条（「この法律において『○○』とは」）を見ると定義語の訳が取れます。辞書検索（標準対訳辞書）は一般的な法令用語しか収録しておらず、施設名や区域名は引けません。
 
 XKT004〜018 の施設系（小学校区、学校、保育園・幼稚園等、医療機関、福祉施設、図書館、市区町村役場及び集会施設等）は一般語なので法令典拠は不要です。国土数値情報は英語のデータセット名を公開していないため、当たる先もありません。
 
