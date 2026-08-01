@@ -40,8 +40,21 @@ TILE_ENDPOINTS = [
     ("get_welfare_facilities", "XKT011", {}, range(13, 16)),
     ("get_libraries", "XKT017", {}, range(13, 16)),
     ("get_natural_park_areas", "XKT019", {}, range(9, 16)),
+    ("get_disaster_risk_areas", "XKT016", {}, range(11, 16)),
+    ("get_densely_inhabited_districts", "XKT031", {}, range(9, 16)),
 ]
-TILE_ENDPOINT_IDS = ["XPT001", "XPT002", "XKT015", "XKT004", "XKT005", "XKT011", "XKT017", "XKT019"]
+TILE_ENDPOINT_IDS = [
+    "XPT001",
+    "XPT002",
+    "XKT015",
+    "XKT004",
+    "XKT005",
+    "XKT011",
+    "XKT017",
+    "XKT019",
+    "XKT016",
+    "XKT031",
+]
 
 # Tile endpoints whose only further parameters are optional filters, with the API's spelling
 # of the municipality code filter every one of them takes. Listed together because the filter
@@ -51,6 +64,8 @@ FILTERED_TILE_ENDPOINTS = [
     ("get_junior_high_school_districts", "XKT005", 11),
     ("get_welfare_facilities", "XKT011", 13),
     ("get_libraries", "XKT017", 13),
+    ("get_disaster_risk_areas", "XKT016", 11),
+    ("get_densely_inhabited_districts", "XKT031", 9),
 ]
 FILTERED_TILE_ENDPOINT_IDS = [endpoint for _, endpoint, _ in FILTERED_TILE_ENDPOINTS]
 
@@ -702,8 +717,8 @@ class TestClient:
             client.get_land_market_value_publication_and_research_point(z=z, x=7312, y=3008, year=2020)
 
     def test_the_rejection_names_the_endpoint_and_the_range(self, mock_api, client):
-        """With 33 tile endpoints and more than one range among them, "z must be 11 to 15" on
-        its own does not tell the caller which endpoint disagreed.
+        """With 32 tile endpoints and four ranges among them, "z must be 11 to 15" on its own
+        does not tell the caller which endpoint disagreed.
         """
         with pytest.raises(ValueError) as exc_info:
             client.get_land_market_value_publication_and_research_point(z=11, x=7312, y=3008, year=2020)
@@ -838,6 +853,11 @@ class TestBlankArguments:
                 {"z": 9, "x": 227, "y": 100, "district_code": []},
                 "districtCode",
             ),
+            (
+                "get_densely_inhabited_districts",
+                {"z": 9, "x": 227, "y": 100, "administrative_area_code": []},
+                "administrativeAreaCode",
+            ),
         ],
         ids=[
             "land_type_code",
@@ -848,6 +868,7 @@ class TestBlankArguments:
             "welfare_facility_minor_class_code",
             "prefecture_code",
             "district_code",
+            "administrative_area_code on the widest zoom range",
         ],
     )
     def test_an_empty_sequence_of_codes_is_refused(self, mock_api, client, method_name, args, expected):
@@ -894,6 +915,7 @@ TILE_ONLY_ENDPOINTS = [
     ("get_municipal_offices_and_public_meeting_facilities_etc", "XKT018", range(13, 16)),
     ("get_district_plans", "XKT023", range(11, 16)),
     ("get_high_level_use_districts", "XKT024", range(11, 16)),
+    ("get_city_planning_roads", "XKT030", range(11, 16)),
     ("get_designated_emergency_evacuation_sites", "XGT001", range(11, 16)),
 ]
 TILE_ONLY_ENDPOINT_IDS = [endpoint for _, endpoint, _ in TILE_ONLY_ENDPOINTS]

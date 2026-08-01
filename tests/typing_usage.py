@@ -62,6 +62,9 @@ def tile_endpoints_from_a_point(client: Client) -> None:
     client.get_welfare_facilities(*tile)
     client.get_natural_park_areas(*tile)
     client.get_designated_emergency_evacuation_sites(*tile)
+    client.get_disaster_risk_areas(*tile)
+    client.get_densely_inhabited_districts(*tile)
+    client.get_city_planning_roads(*tile)
 
 
 def tile_endpoints_over_an_extent(client: Client) -> None:
@@ -129,6 +132,8 @@ def municipality_code_filters(client: Client) -> None:
     client.get_elementary_school_districts(z=11, x=1819, y=806, administrative_area_code="13102")
     client.get_junior_high_school_districts(z=11, x=1819, y=806, administrative_area_code=["01101", "13102"])
     client.get_libraries(z=13, x=7312, y=3008, administrative_area_code="13102")
+    client.get_disaster_risk_areas(z=11, x=1819, y=806, administrative_area_code="13102")
+    client.get_densely_inhabited_districts(z=9, x=227, y=100, administrative_area_code=["01101", "13102"])
     client.get_welfare_facilities(
         z=13,
         x=7312,

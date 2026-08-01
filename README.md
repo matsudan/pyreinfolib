@@ -71,7 +71,7 @@ client.get_appraisal_reports(year=2024, area="13", division=UseDivision.INDUSTRI
 
 ### タイル座標だけで引くAPI
 
-タイル座標のみを取る12本は、引数が `z`, `x`, `y` だけです。
+タイル座標のみを取る13本は、引数が `z`, `x`, `y` だけです。
 
 | メソッド | ID | データ | ズーム |
 |---|---|---|---|
@@ -86,6 +86,7 @@ client.get_appraisal_reports(year=2024, area="13", division=UseDivision.INDUSTRI
 | `get_municipal_offices_and_public_meeting_facilities_etc` | XKT018 | 市区町村役場及び集会施設等 | 13〜15 |
 | `get_district_plans` | XKT023 | 地区計画 | 11〜15 |
 | `get_high_level_use_districts` | XKT024 | 高度利用地区 | 11〜15 |
+| `get_city_planning_roads` | XKT030 | 都市計画道路 | 11〜15 |
 | `get_designated_emergency_evacuation_sites` | XGT001 | 指定緊急避難場所 | 11〜15 |
 
 ```python
@@ -96,14 +97,18 @@ client.get_use_districts(*tiles.containing(lon=139.7016, lat=35.6580, z=15))
 
 ### 行政区域コードで絞り込めるAPI
 
-次の4本はタイル座標に加えて `administrative_area_code`（行政区域コード、5桁）を取ります。**任意**なので、省略すればタイル全体が返ります。
+次の6本はタイル座標に加えて `administrative_area_code`（行政区域コード、5桁）を取ります。**任意**なので、省略すればタイル全体が返ります。
 
 | メソッド | ID | データ | ズーム |
 |---|---|---|---|
 | `get_elementary_school_districts` | XKT004 | 小学校区 | 11〜15 |
 | `get_junior_high_school_districts` | XKT005 | 中学校区 | 11〜15 |
 | `get_welfare_facilities` | XKT011 | 福祉施設 | 13〜15 |
+| `get_disaster_risk_areas` | XKT016 | 災害危険区域 | 11〜15 |
 | `get_libraries` | XKT017 | 図書館 | 13〜15 |
+| `get_densely_inhabited_districts` | XKT031 | 人口集中地区 | 9〜15 |
+
+`get_disaster_risk_areas` のコードは**代表**行政コードです。複数の市区町村にまたがる区域には、そのうち1つのコードしか付きません。
 
 ```python
 client.get_libraries(*tiles.containing(lon=139.7016, lat=35.6580, z=15))

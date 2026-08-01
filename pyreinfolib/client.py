@@ -241,9 +241,9 @@ class Client:
         `params` is passed as a dict rather than as keyword arguments because two of the
         keys the API expects, `from` and `to`, are Python keywords.
 
-        The zoom level is checked here rather than in each public method. There are 33 tile
-        endpoints to add, and a check that lives in the shared helper cannot be left out of
-        one of them.
+        The zoom level is checked here rather than in each public method. 32 of the API's 35
+        endpoints are addressed by tile, and a check that lives in the shared helper cannot be
+        left out of one of them.
 
         :param endpoint: Endpoint id, e.g. `XKT015`.
         :param z: Zoom level (scale).
@@ -627,6 +627,40 @@ class Client:
         """
         return self._get_tile("XKT015", z, x, y)
 
+    def get_disaster_risk_areas(
+        self,
+        z: int,
+        x: int,
+        y: int,
+        administrative_area_code: Sequence[str] | str | None = None,
+    ) -> dict[str, Any]:
+        """Get disaster risk areas (災害危険区域).
+
+        A disaster risk area is one a local government has designated by ordinance as
+        frequently endangered by tidal waves, high tide or flooding, and where it therefore
+        restricts building.
+        See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt016/ for details.
+        :param z: Zoom level (scale). 11 (city) ~ 15 (detail)
+        :param x: x value of tile coordinates.
+        :param y: y value of tile coordinates.
+        :param administrative_area_code: One municipality code, or a sequence of them.
+          Format: NNNNN. The same code table the price endpoints spell `city`.
+          Note that this endpoint documents it as the *representative* municipality of an
+          area, so an area spanning several municipalities carries only one of them.
+          See https://nlftp.mlit.go.jp/ksj/gml/codelist/AdminiBoundary_CD.xlsx
+          If not specified, the whole tile.
+        :return: Disaster risk areas. (Response format: GeoJson)
+        :raises ValueError: If `z` is not between 11 and 15, or `administrative_area_code`
+          is empty.
+        """
+        return self._get_tile(
+            "XKT016",
+            z,
+            x,
+            y,
+            {"administrativeAreaCode": _join_codes(administrative_area_code)},
+        )
+
     def get_libraries(
         self,
         z: int,
@@ -731,6 +765,58 @@ class Client:
         :raises ValueError: If `z` is not between 11 and 15.
         """
         return self._get_tile("XKT024", z, x, y)
+
+    def get_city_planning_roads(self, z: int, x: int, y: int) -> dict[str, Any]:
+        """Get city planning roads (都市計画道路).
+
+        `city planning road` is composed rather than quoted. The City Planning Act does not
+        define 都市計画道路; it is the common name for a road determined as a city planning
+        facility, which the Act's translation renders as "roads that are city planning
+        facilities". Both halves come from that translation -- 都市計画施設 is `city planning
+        facility` and 都市計画事業 is `city planning project`, so `city planning` plus the noun
+        is the Act's own pattern, and 道路 is `roads` in the list of urban facilities.
+        See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt030/ for details.
+        :param z: Zoom level (scale). 11 (city) ~ 15 (detail)
+        :param x: x value of tile coordinates.
+        :param y: y value of tile coordinates.
+        :return: City planning roads. (Response format: GeoJson)
+        :raises ValueError: If `z` is not between 11 and 15.
+        """
+        return self._get_tile("XKT030", z, x, y)
+
+    def get_densely_inhabited_districts(
+        self,
+        z: int,
+        x: int,
+        y: int,
+        administrative_area_code: Sequence[str] | str | None = None,
+    ) -> dict[str, Any]:
+        """Get densely inhabited districts (人口集中地区).
+
+        A densely inhabited district, or DID, is a statistical area set by the population
+        census: contiguous basic unit blocks each holding about 4,000 inhabitants or more per
+        square kilometre, totalling over 5,000 people.
+        See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt031/ for details.
+        :param z: Zoom level (scale). 9 (prefecture) ~ 15 (detail)
+        :param x: x value of tile coordinates.
+        :param y: y value of tile coordinates.
+        :param administrative_area_code: One municipality code, or a sequence of them.
+          Format: NNNNN. The same code table the price endpoints spell `city`.
+          See https://nlftp.mlit.go.jp/ksj/gml/codelist/AdminiBoundary_CD.xlsx
+          If not specified, the whole tile.
+        :return: Densely inhabited districts. (Response format: GeoJson)
+        :raises ValueError: If `z` is not between 9 and 15, or `administrative_area_code`
+          is empty.
+        """
+        return self._get_tile(
+            "XKT031",
+            z,
+            x,
+            y,
+            {"administrativeAreaCode": _join_codes(administrative_area_code)},
+            # Wider than the rest, which start at 11. XKT019 is the other one.
+            zoom_levels=range(9, 16),
+        )
 
     def get_designated_emergency_evacuation_sites(self, z: int, x: int, y: int) -> dict[str, Any]:
         """Get designated emergency evacuation sites (指定緊急避難場所).
