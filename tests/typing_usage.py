@@ -54,6 +54,13 @@ def tile_endpoints_from_a_point(client: Client) -> None:
     client.get_real_estate_prices_point(*tile, period_from=20241, period_to=20242)
     client.get_land_market_value_publication_and_research_point(*tile, year=2020)
 
+    # The endpoints whose further parameters are all optional. `*tile` has to fill `z`, `x`
+    # and `y` without a filter being passed positionally into one of them.
+    client.get_elementary_school_districts(*tile)
+    client.get_junior_high_school_districts(*tile)
+    client.get_libraries(*tile)
+    client.get_welfare_facilities(*tile)
+
 
 def tile_endpoints_over_an_extent(client: Client) -> None:
     """The other idiom #45 fixed, and the one that matters for anything larger than a point."""
@@ -107,6 +114,27 @@ def code_sequences(client: Client) -> None:
         year=2020,
         price_classification=LandPriceClassification.LAND_MARKET_VALUE_PUBLICATION,
         use_category_code=[UseDivision.RESIDENTIAL_LAND, UseDivision.COMMERCIAL_LAND],
+    )
+
+
+def municipality_code_filters(client: Client) -> None:
+    """The tile filters are `str`, so a bare code and a sequence of them both type check.
+
+    Unlike `land_type_code`, these have no enum: the municipality table runs to thousands of
+    entries, and two of the seven welfare facility major classes have no published English
+    name to take a member name from.
+    """
+    client.get_elementary_school_districts(z=11, x=1819, y=806, administrative_area_code="13102")
+    client.get_junior_high_school_districts(z=11, x=1819, y=806, administrative_area_code=["01101", "13102"])
+    client.get_libraries(z=13, x=7312, y=3008, administrative_area_code="13102")
+    client.get_welfare_facilities(
+        z=13,
+        x=7312,
+        y=3008,
+        administrative_area_code="13102",
+        welfare_facility_class_code=["01", "02"],
+        welfare_facility_middle_class_code="0101",
+        welfare_facility_minor_class_code=["020101", "020102"],
     )
 
 

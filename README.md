@@ -93,6 +93,40 @@ from pyreinfolib import tiles
 client.get_use_districts(*tiles.containing(lon=139.7016, lat=35.6580, z=15))
 ```
 
+### 行政区域コードで絞り込めるAPI
+
+次の4本はタイル座標に加えて `administrative_area_code`（行政区域コード、5桁）を取ります。**任意**なので、省略すればタイル全体が返ります。
+
+| メソッド | ID | データ | ズーム |
+|---|---|---|---|
+| `get_elementary_school_districts` | XKT004 | 小学校区 | 11〜15 |
+| `get_junior_high_school_districts` | XKT005 | 中学校区 | 11〜15 |
+| `get_welfare_facilities` | XKT011 | 福祉施設 | 13〜15 |
+| `get_libraries` | XKT017 | 図書館 | 13〜15 |
+
+```python
+client.get_libraries(*tiles.containing(lon=139.7016, lat=35.6580, z=15))
+
+# 1つでも、複数でも渡せます
+client.get_elementary_school_districts(z=11, x=1819, y=806, administrative_area_code="13102")
+client.get_elementary_school_districts(z=11, x=1819, y=806, administrative_area_code=["01101", "13102"])
+```
+
+不動産取引価格情報の `city` と同じ市区町村コードですが、APIが `administrativeAreaCode` と綴っているため引数名も分けています。
+
+`get_welfare_facilities` は施設種別でも絞り込めます。大分類・中分類・小分類の3階層で、いずれも任意です。
+
+```python
+client.get_welfare_facilities(
+    z=13,
+    x=7312,
+    y=3008,
+    welfare_facility_class_code=["02", "05"],  # 老人福祉施設、児童福祉施設等
+)
+```
+
+コード表は[大分類](https://nlftp.mlit.go.jp/ksj/gml/codelist/welfareInstitution_welfareFacilityMajorClassificationCode.html)、[中分類](https://nlftp.mlit.go.jp/ksj/gml/codelist/welfareInstitution_welfareFacilityMiddleClassificationCode.html)、[小分類](https://nlftp.mlit.go.jp/ksj/gml/codelist/welfareInstitution_welfareFacilityMinorClassificationCode.html)にあります。enum ではなく `str` です。中分類62件・小分類122件という規模に加えて、大分類7件のうち2件に公表された英訳がないためです（[CONTRIBUTING.md](CONTRIBUTING.md#enum-にするか-str-にするか)）。
+
 ## タイル座標
 
 公開APIの多くは場所ではなく XYZ タイル座標で引きます。緯度経度から変換するために `pyreinfolib.tiles` を用意しています。ネットワークもAPIキーも不要な純粋関数です。

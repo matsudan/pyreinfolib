@@ -35,8 +35,23 @@ TILE_ENDPOINTS = [
     ("get_real_estate_prices_point", "XPT001", {"period_from": 20241, "period_to": 20241}, range(11, 16)),
     ("get_land_market_value_publication_and_research_point", "XPT002", {"year": 2020}, range(13, 16)),
     ("get_number_of_passengers_per_station", "XKT015", {}, range(11, 16)),
+    ("get_elementary_school_districts", "XKT004", {}, range(11, 16)),
+    ("get_junior_high_school_districts", "XKT005", {}, range(11, 16)),
+    ("get_welfare_facilities", "XKT011", {}, range(13, 16)),
+    ("get_libraries", "XKT017", {}, range(13, 16)),
 ]
-TILE_ENDPOINT_IDS = ["XPT001", "XPT002", "XKT015"]
+TILE_ENDPOINT_IDS = ["XPT001", "XPT002", "XKT015", "XKT004", "XKT005", "XKT011", "XKT017"]
+
+# Tile endpoints whose only further parameters are optional filters, with the API's spelling
+# of the municipality code filter every one of them takes. Listed together because the filter
+# behaves the same across them: omitted means the whole tile, and a sequence is comma joined.
+FILTERED_TILE_ENDPOINTS = [
+    ("get_elementary_school_districts", "XKT004", 11),
+    ("get_junior_high_school_districts", "XKT005", 11),
+    ("get_welfare_facilities", "XKT011", 13),
+    ("get_libraries", "XKT017", 13),
+]
+FILTERED_TILE_ENDPOINT_IDS = [endpoint for _, endpoint, _ in FILTERED_TILE_ENDPOINTS]
 
 
 @dataclass
@@ -792,8 +807,35 @@ class TestBlankArguments:
                 {"z": 13, "x": 7312, "y": 3008, "year": 2020, "use_category_code": []},
                 "useCategoryCode",
             ),
+            (
+                "get_elementary_school_districts",
+                {"z": 11, "x": 1819, "y": 806, "administrative_area_code": []},
+                "administrativeAreaCode",
+            ),
+            (
+                "get_welfare_facilities",
+                {"z": 13, "x": 7312, "y": 3008, "welfare_facility_class_code": []},
+                "welfareFacilityClassCode",
+            ),
+            (
+                "get_welfare_facilities",
+                {"z": 13, "x": 7312, "y": 3008, "welfare_facility_middle_class_code": []},
+                "welfareFacilityMiddleClassCode",
+            ),
+            (
+                "get_welfare_facilities",
+                {"z": 13, "x": 7312, "y": 3008, "welfare_facility_minor_class_code": []},
+                "welfareFacilityMinorClassCode",
+            ),
         ],
-        ids=["land_type_code", "use_category_code"],
+        ids=[
+            "land_type_code",
+            "use_category_code",
+            "administrative_area_code",
+            "welfare_facility_class_code",
+            "welfare_facility_middle_class_code",
+            "welfare_facility_minor_class_code",
+        ],
     )
     def test_an_empty_sequence_of_codes_is_refused(self, mock_api, client, method_name, args, expected):
         """A list that filtered down to nothing is not a request for every code."""
@@ -912,3 +954,128 @@ class TestTileOnlyEndpoints:
             getattr(client, method_name)(*tile)
 
         assert len(mock_api.calls) == len(TILE_ONLY_ENDPOINTS)
+
+
+class TestTileEndpointsWithOptionalFilters:
+    """XKT004, XKT005, XKT011 and XKT017 take filters on top of the coordinates.
+
+    Every filter is optional: the manual marks only `response_format`, `z`, `x` and `y` as
+    required. So each of these is also callable with the coordinates alone, and that has to
+    stay true -- a filter that acquired a default would narrow every caller's results.
+    """
+
+    @pytest.mark.parametrize(
+        ("method_name", "endpoint", "zoom"), FILTERED_TILE_ENDPOINTS, ids=FILTERED_TILE_ENDPOINT_IDS
+    )
+    def test_it_requests_its_own_endpoint_with_the_coordinates_alone(
+        self, mock_api, client, method_name, endpoint, zoom
+    ):
+        """The endpoint id is the one thing a copied method body gets wrong silently.
+
+        `expected_params` is compared whole, so a filter that leaked a default value into the
+        query string would fail here rather than quietly narrowing the response.
+        """
+        assert_request(
+            mock_api,
+            getattr(client, method_name),
+            endpoint,
+            RequestCase(
+                id="tile coordinates only",
+                args={"z": zoom, "x": 1819, "y": 806},
+                expected_params={"response_format": "geojson", "z": str(zoom), "x": "1819", "y": "806"},
+            ),
+        )
+
+    @pytest.mark.parametrize(
+        ("method_name", "endpoint", "zoom"), FILTERED_TILE_ENDPOINTS, ids=FILTERED_TILE_ENDPOINT_IDS
+    )
+    def test_a_single_municipality_code_is_sent_unchanged(self, mock_api, client, method_name, endpoint, zoom):
+        """A bare string has to survive whole.
+
+        `",".join()` treats a string as a sequence of characters, so without the check in
+        `_join_codes` this would send `1,3,1,0,2` instead of `13102`.
+        """
+        assert_request(
+            mock_api,
+            getattr(client, method_name),
+            endpoint,
+            RequestCase(
+                id="one code",
+                args={"z": zoom, "x": 1819, "y": 806, "administrative_area_code": "13102"},
+                expected_params={
+                    "response_format": "geojson",
+                    "z": str(zoom),
+                    "x": "1819",
+                    "y": "806",
+                    "administrativeAreaCode": "13102",
+                },
+            ),
+        )
+
+    @pytest.mark.parametrize(
+        ("method_name", "endpoint", "zoom"), FILTERED_TILE_ENDPOINTS, ids=FILTERED_TILE_ENDPOINT_IDS
+    )
+    def test_several_municipality_codes_are_comma_joined(self, mock_api, client, method_name, endpoint, zoom):
+        assert_request(
+            mock_api,
+            getattr(client, method_name),
+            endpoint,
+            RequestCase(
+                id="several codes",
+                args={"z": zoom, "x": 1819, "y": 806, "administrative_area_code": ["01101", "13102"]},
+                expected_params={
+                    "response_format": "geojson",
+                    "z": str(zoom),
+                    "x": "1819",
+                    "y": "806",
+                    "administrativeAreaCode": "01101,13102",
+                },
+            ),
+        )
+
+    def test_the_welfare_facility_classes_are_three_separate_filters(self, mock_api, client):
+        """Major, middle and minor are one nested classification, but three parameters.
+
+        The names differ by a single word and the digit counts differ by two, so a pair
+        swapped at the call site would reach the API as a code of the wrong width. Pinned
+        together to keep each argument mapped to the parameter that carries its width.
+        """
+        assert_request(
+            mock_api,
+            client.get_welfare_facilities,
+            "XKT011",
+            RequestCase(
+                id="all three levels",
+                args={
+                    "z": 13,
+                    "x": 7312,
+                    "y": 3008,
+                    "administrative_area_code": "13102",
+                    "welfare_facility_class_code": ["01", "02"],
+                    "welfare_facility_middle_class_code": "0101",
+                    "welfare_facility_minor_class_code": ["020101", "020102"],
+                },
+                expected_params={
+                    "response_format": "geojson",
+                    "z": "13",
+                    "x": "7312",
+                    "y": "3008",
+                    "administrativeAreaCode": "13102",
+                    "welfareFacilityClassCode": "01,02",
+                    "welfareFacilityMiddleClassCode": "0101",
+                    "welfareFacilityMinorClassCode": "020101,020102",
+                },
+            ),
+        )
+
+    @pytest.mark.parametrize(
+        ("method_name", "endpoint", "zoom"), FILTERED_TILE_ENDPOINTS, ids=FILTERED_TILE_ENDPOINT_IDS
+    )
+    def test_a_tile_from_the_helpers_reaches_it(self, mock_api, client, method_name, endpoint, zoom):
+        """`*tile` unpacks into `z`, `x`, `y`, which the filters must not displace."""
+        mock_api.get(f"{BASE_URL}{endpoint}", json=DUMMY_RESPONSE)
+        tile = tiles.containing(lon=139.7016, lat=35.6580, z=zoom)
+
+        assert getattr(client, method_name)(*tile) == DUMMY_RESPONSE
+
+        assert params_of(mock_api.calls[0].request)["z"] == str(zoom)
