@@ -21,6 +21,15 @@ DEFAULT_MAX_RETRIES = 3
 # wait to be told the same thing again.
 _RETRY_STATUSES = (429, 500, 502, 503, 504)
 
+# Zoom levels a tile endpoint accepts, as data rather than as a type. Most take this range;
+# each endpoint that does not passes its own to `_get_tile`.
+#
+# A range and not a `Literal`: the levels have to be checkable against a value that arrives
+# computed. `pyreinfolib.tiles` hands back a `Tile` whose `z` is an `int`, and a `Literal`
+# parameter rejects every one of them, which made the documented `client.get_...(*tile)` fail
+# to type check while doing nothing about an out-of-range level held in a variable.
+_DEFAULT_ZOOM_LEVELS = range(11, 16)
+
 # Statuses whose meaning the API documents. Anything else falls back to `APIError`, which
 # still carries the body, so the caller can read the API's own explanation.
 #
@@ -181,6 +190,8 @@ class Client:
         x: int,
         y: int,
         params: dict[str, Any] | None = None,
+        *,
+        zoom_levels: range = _DEFAULT_ZOOM_LEVELS,
     ) -> dict[str, Any]:
         """Issue a GET against an endpoint addressed by XYZ tile coordinates.
 
@@ -192,16 +203,22 @@ class Client:
         `params` is passed as a dict rather than as keyword arguments because two of the
         keys the API expects, `from` and `to`, are Python keywords.
 
-        `z` is a plain `int` here. The zoom levels each endpoint accepts differ, so the
-        narrow `Literal` belongs on the public method that documents them.
+        The zoom level is checked here rather than in each public method. There are 33 tile
+        endpoints to add, and a check that lives in the shared helper cannot be left out of
+        one of them.
 
         :param endpoint: Endpoint id, e.g. `XKT015`.
         :param z: Zoom level (scale).
         :param x: x value of tile coordinates.
         :param y: y value of tile coordinates.
         :param params: Any further query parameters, keyed as the API expects them.
+        :param zoom_levels: The levels this endpoint accepts.
         :return: The decoded JSON body.
+        :raises ValueError: If `z` is not a level the endpoint accepts.
         """
+        if z not in zoom_levels:
+            raise ValueError(f"`z` must be between {zoom_levels.start} and {zoom_levels[-1]} for {endpoint}, got {z}.")
+
         # GeoJson rather than PBF: PBF would need a decoder, and a binary vector tile is not
         # what a Python caller expecting a dict is after.
         tile_params: dict[str, Any] = {"response_format": "geojson", "z": z, "x": x, "y": y}
@@ -274,7 +291,7 @@ class Client:
 
     def get_real_estate_prices_point(
         self,
-        z: Literal[11, 12, 13, 14, 15],
+        z: int,
         x: int,
         y: int,
         period_from: int,
@@ -294,6 +311,7 @@ class Client:
         :param land_type_code: One land type code, or a sequence of them.
           See https://www.reinfolib.mlit.go.jp/help/apiManual/#titleApi7
         :return: Real estate prices point. (Response format: GeoJson)
+        :raises ValueError: If `z` is not between 11 and 15.
         """
         return self._get_tile(
             "XPT001",
@@ -310,7 +328,7 @@ class Client:
 
     def get_land_price_public_notices_and_surveys_point(
         self,
-        z: Literal[13, 14, 15],
+        z: int,
         x: int,
         y: int,
         year: int,
@@ -332,6 +350,7 @@ class Client:
           See https://www.reinfolib.mlit.go.jp/help/apiManual/#titleApi8
         :return: land price public notices (standard land prices) and
         prefectural land price surveys (benchmark land prices) point. (Response format: GeoJson)
+        :raises ValueError: If `z` is not between 13 and 15.
         """
         return self._get_tile(
             "XPT002",
@@ -343,11 +362,13 @@ class Client:
                 "priceClassification": price_classification,
                 "useCategoryCode": _join_codes(use_category_code),
             },
+            # Narrower than the other tile endpoints, which start at 11.
+            zoom_levels=range(13, 16),
         )
 
     def get_number_of_passengers_per_station(
         self,
-        z: Literal[11, 12, 13, 14, 15],
+        z: int,
         x: int,
         y: int,
     ) -> dict[str, Any]:
@@ -357,5 +378,6 @@ class Client:
         :param x: x value of tile coordinates.
         :param y: y value of tile coordinates.
         :return: Number of passengers per station. (Response format: GeoJson)
+        :raises ValueError: If `z` is not between 11 and 15.
         """
         return self._get_tile("XKT015", z, x, y)
