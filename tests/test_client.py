@@ -33,7 +33,7 @@ THROTTLED = {"json": {"message": "slow down"}, "status": 429}
 # to be per endpoint rather than one shared range.
 TILE_ENDPOINTS = [
     ("get_real_estate_prices_point", "XPT001", {"period_from": 20241, "period_to": 20241}, range(11, 16)),
-    ("get_land_price_public_notices_and_surveys_point", "XPT002", {"year": 2020}, range(13, 16)),
+    ("get_land_market_value_publication_and_research_point", "XPT002", {"year": 2020}, range(13, 16)),
     ("get_number_of_passengers_per_station", "XKT015", {}, range(11, 16)),
 ]
 TILE_ENDPOINT_IDS = ["XPT001", "XPT002", "XKT015"]
@@ -547,7 +547,7 @@ class TestClient:
                     "x": 7312,
                     "y": 3008,
                     "year": 2020,
-                    "price_classification": LandPriceClassification.LAND_PRICE_PUBLIC_NOTICE,
+                    "price_classification": LandPriceClassification.LAND_MARKET_VALUE_PUBLICATION,
                     "use_category_code": [UseDivision.RESIDENTIAL_LAND, UseDivision.COMMERCIAL_LAND],
                 },
                 expected_params={
@@ -592,8 +592,8 @@ class TestClient:
         ],
         ids=lambda case: case.id,
     )
-    def test_get_land_price_public_notices_and_surveys_point(self, mock_api, client, case):
-        assert_request(mock_api, client.get_land_price_public_notices_and_surveys_point, "XPT002", case)
+    def test_get_land_market_value_publication_and_research_point(self, mock_api, client, case):
+        assert_request(mock_api, client.get_land_market_value_publication_and_research_point, "XPT002", case)
 
     @pytest.mark.parametrize(
         "case",
@@ -618,7 +618,7 @@ class TestClient:
                 {"z": 11, "x": 1819, "y": 806, "period_from": 20241, "period_to": 20241},
             ),
             (
-                "get_land_price_public_notices_and_surveys_point",
+                "get_land_market_value_publication_and_research_point",
                 "XPT002",
                 {"z": 13, "x": 7312, "y": 3008, "year": 2020},
             ),
@@ -683,14 +683,14 @@ class TestClient:
         API answers a tile it has no data for with an empty feature list rather than an error.
         """
         with pytest.raises(ValueError, match="XPT002"):
-            client.get_land_price_public_notices_and_surveys_point(z=z, x=7312, y=3008, year=2020)
+            client.get_land_market_value_publication_and_research_point(z=z, x=7312, y=3008, year=2020)
 
     def test_the_rejection_names_the_endpoint_and_the_range(self, mock_api, client):
         """With 33 tile endpoints and more than one range among them, "z must be 11 to 15" on
         its own does not tell the caller which endpoint disagreed.
         """
         with pytest.raises(ValueError) as exc_info:
-            client.get_land_price_public_notices_and_surveys_point(z=11, x=7312, y=3008, year=2020)
+            client.get_land_market_value_publication_and_research_point(z=11, x=7312, y=3008, year=2020)
 
         message = str(exc_info.value)
         assert "XPT002" in message
@@ -788,7 +788,7 @@ class TestBlankArguments:
                 "landTypeCode",
             ),
             (
-                "get_land_price_public_notices_and_surveys_point",
+                "get_land_market_value_publication_and_research_point",
                 {"z": 13, "x": 7312, "y": 3008, "year": 2020, "use_category_code": []},
                 "useCategoryCode",
             ),

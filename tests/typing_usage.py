@@ -52,7 +52,7 @@ def tile_endpoints_from_a_point(client: Client) -> None:
     client.get_number_of_passengers_per_station(*tile)
     client.get_number_of_passengers_per_station(z=tile.z, x=tile.x, y=tile.y)
     client.get_real_estate_prices_point(*tile, period_from=20241, period_to=20242)
-    client.get_land_price_public_notices_and_surveys_point(*tile, year=2020)
+    client.get_land_market_value_publication_and_research_point(*tile, year=2020)
 
 
 def tile_endpoints_over_an_extent(client: Client) -> None:
@@ -100,12 +100,12 @@ def code_sequences(client: Client) -> None:
         period_to=20242,
         land_type_code=[LandTypeCode.LAND, LandTypeCode.FOREST_LAND],
     )
-    client.get_land_price_public_notices_and_surveys_point(
+    client.get_land_market_value_publication_and_research_point(
         z=13,
         x=7312,
         y=3008,
         year=2020,
-        price_classification=LandPriceClassification.LAND_PRICE_PUBLIC_NOTICE,
+        price_classification=LandPriceClassification.LAND_MARKET_VALUE_PUBLICATION,
         use_category_code=[UseDivision.RESIDENTIAL_LAND, UseDivision.COMMERCIAL_LAND],
     )
 
@@ -147,7 +147,7 @@ def rejected_by_the_checker(client: Client) -> None:
     fail the run, so each of these fails the build if the rejection ever stops happening.
     """
     # The two price classification tables are not interchangeable.
-    client.get_land_price_public_notices_and_surveys_point(
+    client.get_land_market_value_publication_and_research_point(
         z=13,
         x=7312,
         y=3008,
@@ -156,7 +156,7 @@ def rejected_by_the_checker(client: Client) -> None:
     )
     client.get_real_estate_prices(
         year=2024,
-        price_classification=LandPriceClassification.LAND_PRICE_PUBLIC_NOTICE,  # ty: ignore[invalid-argument-type]
+        price_classification=LandPriceClassification.LAND_MARKET_VALUE_PUBLICATION,  # ty: ignore[invalid-argument-type]
     )
 
     # A bare code string is no longer accepted for a parameter that has an enum.

@@ -22,13 +22,16 @@ class LandPriceClassification(StrEnum):
     A separate code table from `PriceClassification`, numbered from `0` rather than `01`, so
     the two are not interchangeable even though the API spells both `priceClassification`.
     Leaving the argument unset asks for both.
+
+    MLIT distinguishes the two by 公示 and 調査: the first is a publication, the second is
+    research. Rendering both as "publication" would leave the members nearly identical.
     """
 
     # 地価公示
-    LAND_PRICE_PUBLIC_NOTICE = "0"
+    LAND_MARKET_VALUE_PUBLICATION = "0"
 
     # 都道府県地価調査
-    PREFECTURAL_LAND_PRICE_SURVEY = "1"
+    PREFECTURAL_LAND_MARKET_VALUE_RESEARCH = "1"
 
 
 @unique

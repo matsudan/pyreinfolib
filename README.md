@@ -84,7 +84,7 @@ client.get_number_of_passengers_per_station(*tile)
 
 `Tile` は `z, x, y` の順なので、タイル系メソッドにそのまま展開して渡せます。
 
-受け付けるズームレベルはエンドポイントごとに違います（多くは11〜15、`get_land_price_public_notices_and_surveys_point` は13〜15）。範囲外を渡すと、どのエンドポイントが何を期待しているかを含む `ValueError` になります。`tiles` 側はエンドポイントを知らないので、そこでは検証しません。
+受け付けるズームレベルはエンドポイントごとに違います（多くは11〜15、`get_land_market_value_publication_and_research_point` は13〜15）。範囲外を渡すと、どのエンドポイントが何を期待しているかを含む `ValueError` になります。`tiles` 側はエンドポイントを知らないので、そこでは検証しません。
 
 引数はキーワード専用です。GeoJSON や地図系ライブラリは経度を先に置きますが、日本の利用者は緯度経度の順で考えるため、順序を記憶に頼らせない形にしています。
 
@@ -174,7 +174,7 @@ except APIError as e:
 | enum | 対象 | コード |
 |---|---|---|
 | `PriceClassification` | 不動産価格（XIT001、XPT001） | `01` 不動産取引価格情報 / `02` 成約価格情報 |
-| `LandPriceClassification` | 地価公示・地価調査（XPT002） | `0` 地価公示 / `1` 都道府県地価調査 |
+| `LandPriceClassification` | 地価公示・地価調査（XPT002） | `0` 地価公示 = `LAND_MARKET_VALUE_PUBLICATION` / `1` 都道府県地価調査 = `PREFECTURAL_LAND_MARKET_VALUE_RESEARCH` |
 
 別の型にしてあるので、取り違えは型チェックで検出されます。誤ったコードを送った場合、API はエラーではなく絞り込まれた結果や空の結果を返すため、実行時には気づきにくい種類の間違いです。
 
