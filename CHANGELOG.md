@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.6.0](https://github.com/matsudan/pyreinfolib/compare/v0.5.0...v0.6.0) (2026-08-01)
+
+
+### Features
+
+* add the disaster risk area, city planning road and DID endpoints ([#55](https://github.com/matsudan/pyreinfolib/issues/55)) ([61a49e4](https://github.com/matsudan/pyreinfolib/commit/61a49e4ca3ce0e8f469b96e32295cb2732aeea30))
+* add the landslide prevention and sediment disaster endpoints ([#58](https://github.com/matsudan/pyreinfolib/issues/58)) ([0f2ff5d](https://github.com/matsudan/pyreinfolib/commit/0f2ff5d714321e2410768cd8459c0739de8c0899))
+* add the location normalization plan endpoint ([#60](https://github.com/matsudan/pyreinfolib/issues/60)) ([2e4c963](https://github.com/matsudan/pyreinfolib/commit/2e4c963d0a49cb788cddfab214b67dcf02e23f88))
+* add the natural park and emergency evacuation site endpoints ([#54](https://github.com/matsudan/pyreinfolib/issues/54)) ([646686f](https://github.com/matsudan/pyreinfolib/commit/646686feee259e66b95614bfac9faab061c4a532))
+* add the tile endpoints that filter by municipality code ([#53](https://github.com/matsudan/pyreinfolib/issues/53)) ([0faf56f](https://github.com/matsudan/pyreinfolib/commit/0faf56f9df8c8ae28dbcfc3c3136feb7dee13ca4))
+* add the tile endpoints that take no further parameters ([#51](https://github.com/matsudan/pyreinfolib/issues/51)) ([0b625ac](https://github.com/matsudan/pyreinfolib/commit/0b625ac4f2afda6488fb4bdc7600f4b248e6beee))
+* support Python 3.13 and 3.14 ([#57](https://github.com/matsudan/pyreinfolib/issues/57)) ([c0af7b7](https://github.com/matsudan/pyreinfolib/commit/c0af7b72141e4b16d8def22b8626b65b27bf3356))
+
+
+### Documentation
+
+* add status badges to the README ([#56](https://github.com/matsudan/pyreinfolib/issues/56)) ([faf9828](https://github.com/matsudan/pyreinfolib/commit/faf98281addb8498af11d88e07254bc864dd6143))
+
 ## [0.5.0](https://github.com/matsudan/pyreinfolib/compare/v0.4.0...v0.5.0) (2026-08-01)
 
 
