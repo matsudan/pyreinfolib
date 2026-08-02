@@ -175,6 +175,9 @@ def error_handling(client: Client) -> None:
     except RateLimitError as e:
         _: int = e.status_code
     except APIError as e:
+        # The one `print` left in this file, and it stays: this is the README's idiom verbatim,
+        # so the call is part of what needs checking rather than a way to consume a variable.
+        # `url` is safe to log because the API key travels in a header -- see `APIError`.
         print(e.status_code, e.response_body, e.url)
     except ReinfolibError:
         pass
@@ -188,20 +191,20 @@ def reading_a_non_tile_response(client: Client) -> None:
         # `str` because XIT001 declares every one of its fields 文字列型, the price included.
         price: str = record["TradePrice"]
         period: str = record["Period"]
-        print(price, period)
+        assert price.isdigit() and period.startswith("20")
 
     # The response type is nameable, so a caller can annotate a variable or a function that
     # takes one. Without this the types would only be reachable through inference.
     municipalities: MunicipalitiesResponse = client.get_municipalities(area="13")
     status: str = municipalities["status"]
-    first: str = municipalities["data"][0]["name"]
-    print(status, first)
+    code: str = municipalities["data"][0]["id"]
+    assert status == "OK" and len(code) == 5
 
     reports = client.get_appraisal_reports(year=2024, area="13", division=UseDivision.INDUSTRIAL_LAND)
     # Japanese keys, which is what XCT001 documents. The U+3000 spaces are part of the key.
-    latitude: str = reports["data"][0]["緯度"]
     unit_price: str = reports["data"][0]["1㎡当たりの価格"]
-    print(latitude, unit_price)
+    shape: str = reports["data"][0]["標準地　形状　形状"]
+    assert unit_price.isdigit() and shape != ""
 
 
 def summing_a_record(records: list[RealEstatePricesItem]) -> int:
@@ -215,14 +218,14 @@ def reading_a_tile_response(client: Client) -> None:
 
     for feature in districts["features"]:
         properties: UseDistrictsProperties = feature["properties"]
-        area: str = properties["use_area_ja"]
-        # 整数型 on this endpoint. XKT023 declares the same field name 文字列型, which is why
-        # each endpoint gets its own properties type rather than sharing one.
-        kubun: str = properties["u_floor_area_ratio_ja"]
-        print(area, kubun)
+        use_area: str = properties["use_area_ja"]
+        # `int` here, because XKT002 declares 区分コード 整数型. XKT023 declares the same field
+        # name 文字列型, which is why each endpoint gets its own properties type.
+        kubun: int = properties["youto_id"]
+        assert use_area != "" and kubun > 0
 
     # An empty tile is an empty list, not an error, so this is the normal shape of the loop.
-    print(len(districts["features"]))
+    assert len(districts["features"]) >= 0
 
 
 def narrowing_geometry(client: Client) -> None:
@@ -236,11 +239,11 @@ def narrowing_geometry(client: Client) -> None:
         if geometry is None:
             continue
         if geometry["type"] == "Point":
-            lon, lat = geometry["coordinates"][0], geometry["coordinates"][1]
-            print(lon, lat)
+            position = geometry["coordinates"]
+            assert -180.0 <= position[0] <= 180.0
         elif geometry["type"] == "Polygon":
             ring = geometry["coordinates"][0]
-            print(len(ring))
+            assert len(ring) >= 4
 
 
 def the_one_endpoint_without_a_precise_type(client: Client) -> None:
@@ -249,7 +252,7 @@ def the_one_endpoint_without_a_precise_type(client: Client) -> None:
         mesh_id = feature["properties"]["MESH_ID"]
         # Whichever year the published estimate carries. Unknown at type check time.
         population = feature["properties"]["PT00_2050"]
-        print(mesh_id, population)
+        assert mesh_id is not None and population is not None
 
 
 def tile_geometry() -> None:
@@ -299,30 +302,34 @@ def rejected_by_the_checker(client: Client) -> None:
 
     # A key the endpoint does not have. This is the failure the response types exist to catch:
     # before them, `record["TradePirce"]` was a `KeyError` for whoever ran the code.
+    #
+    # Assigned to `_` rather than passed to `print`. These lines exist only to be type checked,
+    # and `_ =` says so; `print` also drew a CodeQL clear-text-logging alert on the fields whose
+    # names read as personal data, which several of these types have.
     record = client.get_real_estate_prices(year=2024)["data"][0]
-    print(record["TradePirce"])  # ty: ignore[invalid-key]
+    _ = record["TradePirce"]  # ty: ignore[invalid-key]
 
     # A key that belongs to a different endpoint. XIT001 spells the municipality code
     # `MunicipalityCode`; the tile endpoints spell it `administrativeAreaCode`.
-    print(record["administrativeAreaCode"])  # ty: ignore[invalid-key]
+    _ = record["administrativeAreaCode"]  # ty: ignore[invalid-key]
 
     # XIT001 declares every field 文字列型, so the price arrives as a string. Treating it as a
     # number is the mistake `dict[str, Any]` used to allow through.
     total: int = record["TradePrice"]  # ty: ignore[invalid-assignment]
-    print(total)
+    _ = total
 
     # Properties types are per endpoint, not shared, even where the field names overlap.
     plan = client.get_district_plans(z=11, x=1819, y=806)["features"][0]["properties"]
     districts: UseDistrictsProperties = plan  # ty: ignore[invalid-assignment]
-    print(districts)
+    _ = districts
 
     # GeoJSON allows a null geometry, so a feature's geometry has to be checked before use.
     geometry = client.get_schools(z=13, x=7269, y=3235)["features"][0]["geometry"]
-    print(geometry["coordinates"])  # ty: ignore[not-subscriptable]
+    _ = geometry["coordinates"]  # ty: ignore[not-subscriptable]
 
     # And with the `None` excluded, a coordinate still cannot be read at a fixed depth: every
     # geometry has `coordinates`, but a Point's is a position where a Polygon's is a list of
     # rings. Narrowing on `type` is what makes the depth known.
     if geometry is not None:
-        longitude: float = geometry["coordinates"][0]  # ty: ignore[invalid-assignment]
-        print(longitude)
+        depth: float = geometry["coordinates"][0]  # ty: ignore[invalid-assignment]
+        _ = depth
