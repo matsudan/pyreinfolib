@@ -8,6 +8,36 @@ from requests.adapters import HTTPAdapter
 from urllib3.util import Retry
 
 from pyreinfolib import enums, exceptions
+from pyreinfolib.types import (
+    AppraisalReportsResponse,
+    CityPlanningAreasAndAreaClassificationResponse,
+    CityPlanningRoadsResponse,
+    DenselyInhabitedDistrictsResponse,
+    DesignatedEmergencyEvacuationSitesResponse,
+    DisasterRiskAreasResponse,
+    DistrictPlansResponse,
+    ElementarySchoolDistrictsResponse,
+    FirePreventionDistrictsAndQuasiFirePreventionDistrictsResponse,
+    FuturePopulationEstimatesBy250mMeshResponse,
+    HighLevelUseDistrictsResponse,
+    JuniorHighSchoolDistrictsResponse,
+    LandMarketValuePublicationAndResearchPointResponse,
+    LandslidePreventionDistrictsResponse,
+    LibrariesResponse,
+    LocationNormalizationPlansResponse,
+    MedicalInstitutionsResponse,
+    MunicipalitiesResponse,
+    MunicipalOfficesAndPublicMeetingFacilitiesEtcResponse,
+    NaturalParkAreasResponse,
+    NumberOfPassengersPerStationResponse,
+    NurserySchoolsAndKindergartensEtcResponse,
+    RealEstatePricesPointResponse,
+    RealEstatePricesResponse,
+    SchoolsResponse,
+    SedimentDisasterAlertAreasResponse,
+    UseDistrictsResponse,
+    WelfareFacilitiesResponse,
+)
 
 DEFAULT_TIMEOUT = 30.0
 DEFAULT_MAX_RETRIES = 3
@@ -181,8 +211,16 @@ class Client:
     ) -> None:
         self.close()
 
-    def _get(self, endpoint: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
+    def _get(self, endpoint: str, params: dict[str, Any] | None = None) -> Any:
         """Issue a GET against `endpoint` and return the decoded JSON body.
+
+        `Any`, deliberately, and it is the public method's annotation that says what the body
+        is. `r.json()` returns `Any` and nothing here inspects the result, so a `dict[str, Any]`
+        here would be a claim this method has not checked, and every caller would then need a
+        `cast` to say the same thing again. The narrowing belongs where the endpoint is known.
+
+        Note that the types in `pyreinfolib.types` are a static claim either way: no response
+        is validated against them.
 
         :raises TransportError: If no response was obtained.
         :raises AuthenticationError: If the API key was missing or rejected.
@@ -230,7 +268,7 @@ class Client:
         params: dict[str, Any] | None = None,
         *,
         zoom_levels: range = _DEFAULT_ZOOM_LEVELS,
-    ) -> dict[str, Any]:
+    ) -> Any:
         """Issue a GET against an endpoint addressed by XYZ tile coordinates.
 
         Most of the published API is addressed this way: `response_format`, `z`, `x` and `y`
@@ -275,7 +313,7 @@ class Client:
         city: str | None = None,
         station: str | None = None,
         language: Literal["ja", "en"] | None = None,
-    ) -> dict[str, Any]:
+    ) -> RealEstatePricesResponse:
         """Get real estate prices. See https://www.reinfolib.mlit.go.jp/help/apiManual/#titleApi4 for details.
         :param price_classification: Price classification.
           If not specified, both real estate transaction prices and contract prices.
@@ -303,7 +341,7 @@ class Client:
 
         return self._get("XIT001", params)
 
-    def get_municipalities(self, area: str, language: Literal["ja", "en"] | None = None) -> dict[str, Any]:
+    def get_municipalities(self, area: str, language: Literal["ja", "en"] | None = None) -> MunicipalitiesResponse:
         """Get municipality (city/ward/town/village) list.
         See https://www.reinfolib.mlit.go.jp/help/apiManual/#titleApi5 for details.
         :param area: Prefecture code. See https://nlftp.mlit.go.jp/ksj/gml/codelist/PrefCd.html
@@ -316,7 +354,7 @@ class Client:
 
         return self._get("XIT002", params)
 
-    def get_appraisal_reports(self, year: int, area: str, division: enums.UseDivision) -> dict[str, Any]:
+    def get_appraisal_reports(self, year: int, area: str, division: enums.UseDivision) -> AppraisalReportsResponse:
         """Get real estate appraisal reports.
         See https://www.reinfolib.mlit.go.jp/help/apiManual/#titleApi6 for details.
         :param year: Date of value.
@@ -341,7 +379,7 @@ class Client:
         period_to: int,
         price_classification: enums.PriceClassification | None = None,
         land_type_code: Sequence[enums.LandTypeCode] | enums.LandTypeCode | None = None,
-    ) -> dict[str, Any]:
+    ) -> RealEstatePricesPointResponse:
         """Get real estate prices point.
         See https://www.reinfolib.mlit.go.jp/help/apiManual/#titleApi7 for details.
         :param z: Zoom level (scale). 11 (city) ~ 15 (detail)
@@ -377,7 +415,7 @@ class Client:
         year: int,
         price_classification: enums.LandPriceClassification | None = None,
         use_category_code: Sequence[enums.UseDivision] | enums.UseDivision | None = None,
-    ) -> dict[str, Any]:
+    ) -> LandMarketValuePublicationAndResearchPointResponse:
         """Get land market value publication (地価公示) and land market value research
         (地価調査) point.
 
@@ -413,7 +451,9 @@ class Client:
             zoom_levels=range(13, 16),
         )
 
-    def get_city_planning_areas_and_area_classification(self, z: int, x: int, y: int) -> dict[str, Any]:
+    def get_city_planning_areas_and_area_classification(
+        self, z: int, x: int, y: int
+    ) -> CityPlanningAreasAndAreaClassificationResponse:
         """Get city planning areas (都市計画区域) and area classification (区域区分).
 
         Area classification is the division of a city planning area into an urbanization
@@ -427,7 +467,7 @@ class Client:
         """
         return self._get_tile("XKT001", z, x, y)
 
-    def get_use_districts(self, z: int, x: int, y: int) -> dict[str, Any]:
+    def get_use_districts(self, z: int, x: int, y: int) -> UseDistrictsResponse:
         """Get use districts (用途地域).
         See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt002/ for details.
         :param z: Zoom level (scale). 11 (city) ~ 15 (detail)
@@ -438,7 +478,7 @@ class Client:
         """
         return self._get_tile("XKT002", z, x, y)
 
-    def get_location_normalization_plans(self, z: int, x: int, y: int) -> dict[str, Any]:
+    def get_location_normalization_plans(self, z: int, x: int, y: int) -> LocationNormalizationPlansResponse:
         """Get location normalization plans (立地適正化計画).
 
         A municipality's plan under the Act on Special Measures Concerning Urban Renaissance
@@ -465,7 +505,7 @@ class Client:
         x: int,
         y: int,
         administrative_area_code: Sequence[str] | str | None = None,
-    ) -> dict[str, Any]:
+    ) -> ElementarySchoolDistrictsResponse:
         """Get elementary school districts (小学校区).
         See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt004/ for details.
         :param z: Zoom level (scale). 11 (city) ~ 15 (detail)
@@ -493,7 +533,7 @@ class Client:
         x: int,
         y: int,
         administrative_area_code: Sequence[str] | str | None = None,
-    ) -> dict[str, Any]:
+    ) -> JuniorHighSchoolDistrictsResponse:
         """Get junior high school districts (中学校区).
         See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt005/ for details.
         :param z: Zoom level (scale). 11 (city) ~ 15 (detail)
@@ -515,7 +555,7 @@ class Client:
             {"administrativeAreaCode": _join_codes(administrative_area_code)},
         )
 
-    def get_schools(self, z: int, x: int, y: int) -> dict[str, Any]:
+    def get_schools(self, z: int, x: int, y: int) -> SchoolsResponse:
         """Get schools (学校).
         See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt006/ for details.
         :param z: Zoom level (scale). 13 ~ 15 (detail)
@@ -526,7 +566,9 @@ class Client:
         """
         return self._get_tile("XKT006", z, x, y, zoom_levels=range(13, 16))
 
-    def get_nursery_schools_and_kindergartens_etc(self, z: int, x: int, y: int) -> dict[str, Any]:
+    def get_nursery_schools_and_kindergartens_etc(
+        self, z: int, x: int, y: int
+    ) -> NurserySchoolsAndKindergartensEtcResponse:
         """Get nursery schools and kindergartens etc. (保育園・幼稚園等).
         See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt007/ for details.
         :param z: Zoom level (scale). 13 ~ 15 (detail)
@@ -537,7 +579,7 @@ class Client:
         """
         return self._get_tile("XKT007", z, x, y, zoom_levels=range(13, 16))
 
-    def get_medical_institutions(self, z: int, x: int, y: int) -> dict[str, Any]:
+    def get_medical_institutions(self, z: int, x: int, y: int) -> MedicalInstitutionsResponse:
         """Get medical institutions (医療機関).
         See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt010/ for details.
         :param z: Zoom level (scale). 13 ~ 15 (detail)
@@ -557,7 +599,7 @@ class Client:
         welfare_facility_class_code: Sequence[str] | str | None = None,
         welfare_facility_middle_class_code: Sequence[str] | str | None = None,
         welfare_facility_minor_class_code: Sequence[str] | str | None = None,
-    ) -> dict[str, Any]:
+    ) -> WelfareFacilitiesResponse:
         """Get welfare facilities (福祉施設).
 
         The three class codes are one nested classification at three levels of detail, and
@@ -603,7 +645,9 @@ class Client:
             zoom_levels=range(13, 16),
         )
 
-    def get_future_population_estimates_by_250m_mesh(self, z: int, x: int, y: int) -> dict[str, Any]:
+    def get_future_population_estimates_by_250m_mesh(
+        self, z: int, x: int, y: int
+    ) -> FuturePopulationEstimatesBy250mMeshResponse:
         """Get future population estimates by 250m mesh (将来推計人口250mメッシュ).
         See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt013/ for details.
         :param z: Zoom level (scale). 11 (city) ~ 15 (detail)
@@ -616,7 +660,7 @@ class Client:
 
     def get_fire_prevention_districts_and_quasi_fire_prevention_districts(
         self, z: int, x: int, y: int
-    ) -> dict[str, Any]:
+    ) -> FirePreventionDistrictsAndQuasiFirePreventionDistrictsResponse:
         """Get fire prevention districts and quasi-fire prevention districts (防火・準防火地域).
 
         `districts` twice, although the Japanese writes 地域 once. That is how the Building
@@ -637,7 +681,7 @@ class Client:
         z: int,
         x: int,
         y: int,
-    ) -> dict[str, Any]:
+    ) -> NumberOfPassengersPerStationResponse:
         """Get number of passengers per station.
         See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt015/ for details.
         :param z: Zoom level (scale). 11 (city) ~ 15 (detail)
@@ -654,7 +698,7 @@ class Client:
         x: int,
         y: int,
         administrative_area_code: Sequence[str] | str | None = None,
-    ) -> dict[str, Any]:
+    ) -> DisasterRiskAreasResponse:
         """Get disaster risk areas (災害危険区域).
 
         A disaster risk area is one a local government has designated by ordinance as
@@ -688,7 +732,7 @@ class Client:
         x: int,
         y: int,
         administrative_area_code: Sequence[str] | str | None = None,
-    ) -> dict[str, Any]:
+    ) -> LibrariesResponse:
         """Get libraries (図書館).
         See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt017/ for details.
         :param z: Zoom level (scale). 13 ~ 15 (detail)
@@ -711,7 +755,9 @@ class Client:
             zoom_levels=range(13, 16),
         )
 
-    def get_municipal_offices_and_public_meeting_facilities_etc(self, z: int, x: int, y: int) -> dict[str, Any]:
+    def get_municipal_offices_and_public_meeting_facilities_etc(
+        self, z: int, x: int, y: int
+    ) -> MunicipalOfficesAndPublicMeetingFacilitiesEtcResponse:
         """Get municipal offices and public meeting facilities etc. (市区町村役場及び集会施設等).
         See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt018/ for details.
         :param z: Zoom level (scale). 13 ~ 15 (detail)
@@ -729,7 +775,7 @@ class Client:
         y: int,
         prefecture_code: Sequence[str] | str | None = None,
         district_code: Sequence[str] | str | None = None,
-    ) -> dict[str, Any]:
+    ) -> NaturalParkAreasResponse:
         """Get natural park areas (自然公園地域).
 
         Natural parks are national parks, quasi-national parks and prefectural natural parks,
@@ -772,7 +818,7 @@ class Client:
         y: int,
         prefecture_code: Sequence[str] | str | None = None,
         administrative_area_code: Sequence[str] | str | None = None,
-    ) -> dict[str, Any]:
+    ) -> LandslidePreventionDistrictsResponse:
         """Get landslide prevention districts (地すべり防止地区).
 
         `districts` because the API dataset is named 地すべり防止**地区**. The designation it
@@ -807,7 +853,7 @@ class Client:
             },
         )
 
-    def get_district_plans(self, z: int, x: int, y: int) -> dict[str, Any]:
+    def get_district_plans(self, z: int, x: int, y: int) -> DistrictPlansResponse:
         """Get district plans (地区計画).
         See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt023/ for details.
         :param z: Zoom level (scale). 11 (city) ~ 15 (detail)
@@ -818,7 +864,7 @@ class Client:
         """
         return self._get_tile("XKT023", z, x, y)
 
-    def get_high_level_use_districts(self, z: int, x: int, y: int) -> dict[str, Any]:
+    def get_high_level_use_districts(self, z: int, x: int, y: int) -> HighLevelUseDistrictsResponse:
         """Get high-level use districts (高度利用地区).
         See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt024/ for details.
         :param z: Zoom level (scale). 11 (city) ~ 15 (detail)
@@ -829,7 +875,7 @@ class Client:
         """
         return self._get_tile("XKT024", z, x, y)
 
-    def get_sediment_disaster_alert_areas(self, z: int, x: int, y: int) -> dict[str, Any]:
+    def get_sediment_disaster_alert_areas(self, z: int, x: int, y: int) -> SedimentDisasterAlertAreasResponse:
         """Get sediment disaster alert areas (土砂災害警戒区域).
 
         An area where a sediment disaster could harm residents, designated by a prefecture so
@@ -848,7 +894,7 @@ class Client:
         """
         return self._get_tile("XKT029", z, x, y)
 
-    def get_city_planning_roads(self, z: int, x: int, y: int) -> dict[str, Any]:
+    def get_city_planning_roads(self, z: int, x: int, y: int) -> CityPlanningRoadsResponse:
         """Get city planning roads (都市計画道路).
 
         `city planning road` is composed rather than quoted. The City Planning Act does not
@@ -872,7 +918,7 @@ class Client:
         x: int,
         y: int,
         administrative_area_code: Sequence[str] | str | None = None,
-    ) -> dict[str, Any]:
+    ) -> DenselyInhabitedDistrictsResponse:
         """Get densely inhabited districts (人口集中地区).
 
         A densely inhabited district, or DID, is a statistical area set by the population
@@ -900,7 +946,9 @@ class Client:
             zoom_levels=range(9, 16),
         )
 
-    def get_designated_emergency_evacuation_sites(self, z: int, x: int, y: int) -> dict[str, Any]:
+    def get_designated_emergency_evacuation_sites(
+        self, z: int, x: int, y: int
+    ) -> DesignatedEmergencyEvacuationSitesResponse:
         """Get designated emergency evacuation sites (指定緊急避難場所).
 
         A designated emergency evacuation site is somewhere a municipality has designated for

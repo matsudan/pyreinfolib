@@ -268,6 +268,57 @@ except APIError as e:
 | `PriceClassification` | 不動産価格（XIT001、XPT001） | `01` 不動産取引価格情報 / `02` 成約価格情報 |
 | `LandPriceClassification` | 地価公示・地価調査（XPT002） | `0` 地価公示 = `LAND_MARKET_VALUE_PUBLICATION` / `1` 都道府県地価調査 = `PREFECTURAL_LAND_MARKET_VALUE_RESEARCH` |
 
+### レスポンスの型
+
+返り値にも型が付いています。各メソッドのレスポンスの形を `pyreinfolib.types` に `TypedDict` で置いています。
+
+```python
+prices = client.get_real_estate_prices(year=2024, city="13109")
+
+for record in prices["data"]:
+    print(record["TradePrice"])
+    print(record["TradePirce"])  # 型エラー
+```
+
+型名はメソッド名から機械的に決まります。変数や自作関数に注釈を付けるときに使ってください。
+
+```python
+from pyreinfolib.types import RealEstatePricesItem, UseDistrictsResponse
+
+
+def total(records: list[RealEstatePricesItem]) -> int:
+    return sum(int(r["TradePrice"]) for r in records)
+
+
+districts: UseDistrictsResponse = client.get_use_districts(z=15, x=29099, y=12905)
+```
+
+| 接尾辞 | 対象 | 例 |
+|---|---|---|
+| `Response` | 返り値そのもの | `UseDistrictsResponse` |
+| `Properties` | タイル系の1フィーチャの `properties` | `UseDistrictsProperties` |
+| `Item` | 非タイル系の `data` の1要素 | `RealEstatePricesItem` |
+
+**キーは API のタグ名そのままです。** 各エンドポイントのマニュアル個別ページの `＜出力＞` 表にあるタグ名を、整えずに使っています。国土数値情報の属性コード（`A27_001`）、ローマ字（`kubun_id`）、`_ja` 接尾辞、XCT001 の日本語キー（全角スペース入り）、XPT002 の `proximity_to_transportation_facilitites`（API 側の綴り間違い）も、そのままです。直すと存在しないキーになります。
+
+値の型もマニュアルの宣言通りです。XIT001 は取引価格を含めて全フィールドが文字列型なので、`record["TradePrice"]` は `str` です。同じ `kubun_id` が XKT001 では `int`、XKT023 では `str` なのも、マニュアルの記載がそうなっているためです。
+
+**どのキーが必ず来るかはマニュアルに記載がないため、全フィールドを省略可能として扱っています。** 読み取りは型チェックを通りますが、実行時に `KeyError` の可能性は残ります。null になりうるかも記載がないので表現していません。
+
+`geometry` は6種のジオメトリの合併型で、`type` で絞り込んでから `coordinates` を読みます。XKT029 は同一エンドポイントでポリゴンとラインが混在するとマニュアルが明記しているので、エンドポイントごとに1種類とは決められません。
+
+```python
+for feature in client.get_schools(z=13, x=7269, y=3235)["features"]:
+    geometry = feature["geometry"]
+    if geometry is not None and geometry["type"] == "Point":
+        lon, lat = geometry["coordinates"][0], geometry["coordinates"][1]
+```
+
+`get_future_population_estimates_by_250m_mesh`（XKT013）だけは `properties` が `dict[str, Any]` です。`PT01_20XX` のようにフィールド名が年を含み、マニュアルがその年をプレースホルダで書いているためです。
+
+> [!NOTE]
+> 0.6.0 以前は全メソッドが `dict[str, Any]` を返していました。返り値を `dict[str, Any]` と注釈していた場合、`TypedDict` は `dict[str, Any]` に代入できないため型チェックが落ちます。注釈を外すか、対応する `...Response` に差し替えてください。実行時の挙動は変わりません。
+
 ## Contributing
 
 メソッド名や enum メンバー名は、API 操作説明の API 名から機械的に導出しています。導出手順と訳語の用語集は [CONTRIBUTING.md](CONTRIBUTING.md) にあります。
