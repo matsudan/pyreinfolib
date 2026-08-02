@@ -83,10 +83,10 @@ client.get_appraisal_reports(year=2024, area="13", division=UseDivision.INDUSTRI
 | `get_schools` | XKT006 | 学校 | 13〜15 |
 | `get_nursery_schools_and_kindergartens_etc` | XKT007 | 保育園・幼稚園等 | 13〜15 |
 | `get_medical_institutions` | XKT010 | 医療機関 | 13〜15 |
-| `get_future_population_estimates_by_250m_mesh` | XKT013 | 将来推計人口250mメッシュ | 11〜15 |
+| `get_population_projections_in_250m_grid_squares` | XKT013 | 将来推計人口250mメッシュ | 11〜15 |
 | `get_fire_prevention_districts_and_quasi_fire_prevention_districts` | XKT014 | 防火・準防火地域 | 11〜15 |
 | `get_number_of_passengers_per_station` | XKT015 | 駅別乗降客数 | 11〜15 |
-| `get_municipal_offices_and_public_meeting_facilities_etc` | XKT018 | 市区町村役場及び集会施設等 | 13〜15 |
+| `get_municipal_offices_and_meeting_facilities_etc` | XKT018 | 市区町村役場及び集会施設等 | 13〜15 |
 | `get_district_plans` | XKT023 | 地区計画 | 11〜15 |
 | `get_large_scale_developed_embankments` | XKT020 | 大規模盛土造成地マップ | 11〜15 |
 | `get_liquefaction_tendency_based_on_topographical_classification` | XKT025 | 地形区分に基づく液状化の発生傾向図 | 11〜15 |
@@ -339,7 +339,7 @@ for feature in client.get_schools(z=13, x=7269, y=3235)["features"]:
         lon, lat = geometry["coordinates"][0], geometry["coordinates"][1]
 ```
 
-`get_future_population_estimates_by_250m_mesh`（XKT013）だけは `properties` が `dict[str, Any]` です。`PT01_20XX` のようにフィールド名が年を含み、マニュアルがその年をプレースホルダで書いているためです。
+`get_population_projections_in_250m_grid_squares`（XKT013）だけは `properties` が `dict[str, Any]` です。`PT01_20XX` のようにフィールド名が年を含み、マニュアルがその年をプレースホルダで書いているためです。
 
 > [!NOTE]
 > 0.6.0 以前は全メソッドが `dict[str, Any]` を返していました。返り値を `dict[str, Any]` と注釈していた場合、`TypedDict` は `dict[str, Any]` に代入できないため型チェックが落ちます。注釈を外すか、対応する `...Response` に差し替えてください。実行時の挙動は変わりません。

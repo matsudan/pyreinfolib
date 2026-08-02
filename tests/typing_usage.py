@@ -263,7 +263,7 @@ def narrowing_geometry(client: Client) -> None:
 
 def the_one_endpoint_without_a_precise_type(client: Client) -> None:
     """XKT013 names its fields after a year the manual writes as `20XX`, so keys stay open."""
-    for feature in client.get_future_population_estimates_by_250m_mesh(z=11, x=1819, y=806)["features"]:
+    for feature in client.get_population_projections_in_250m_grid_squares(z=11, x=1819, y=806)["features"]:
         mesh_id = feature["properties"]["MESH_ID"]
         # Whichever year the published estimate carries. Unknown at type check time.
         population = feature["properties"]["PT00_2050"]

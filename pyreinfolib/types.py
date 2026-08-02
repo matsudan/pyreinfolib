@@ -127,8 +127,8 @@ class DataResponse(TypedDict, Generic[T]):
 # depends on the estimate published, so a `TypedDict` here would either be wrong or would have
 # to invent the year. An open mapping is the honest type; the feature collection around it is
 # still precise.
-FuturePopulationEstimatesBy250mMeshProperties = dict[str, Any]
-FuturePopulationEstimatesBy250mMeshResponse = FeatureCollection[FuturePopulationEstimatesBy250mMeshProperties]
+PopulationProjectionsIn250mGridSquaresProperties = dict[str, Any]
+PopulationProjectionsIn250mGridSquaresResponse = FeatureCollection[PopulationProjectionsIn250mGridSquaresProperties]
 
 
 class RealEstatePricesItem(TypedDict, total=False):
@@ -767,7 +767,7 @@ class LibrariesProperties(TypedDict, total=False):
 LibrariesResponse = FeatureCollection[LibrariesProperties]
 
 
-class MunicipalOfficesAndPublicMeetingFacilitiesEtcProperties(TypedDict, total=False):
+class MunicipalOfficesAndMeetingFacilitiesEtcProperties(TypedDict, total=False):
     """One feature's `properties` from XKT018, 国土数値情報（市区町村役場及び集会施設等）API.
 
     See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt018/
@@ -780,9 +780,7 @@ class MunicipalOfficesAndPublicMeetingFacilitiesEtcProperties(TypedDict, total=F
     P05_004_ja: str  # 所在地
 
 
-MunicipalOfficesAndPublicMeetingFacilitiesEtcResponse = FeatureCollection[
-    MunicipalOfficesAndPublicMeetingFacilitiesEtcProperties
-]
+MunicipalOfficesAndMeetingFacilitiesEtcResponse = FeatureCollection[MunicipalOfficesAndMeetingFacilitiesEtcProperties]
 
 
 class NaturalParkAreasProperties(TypedDict, total=False):
