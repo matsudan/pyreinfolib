@@ -17,6 +17,9 @@ from pyreinfolib.types import (
     DisasterRiskAreasResponse,
     DistrictPlansResponse,
     ElementarySchoolDistrictsResponse,
+    ExpectedFloodInundationAreasAtMaximumScaleResponse,
+    ExpectedStormSurgeInundationAreasResponse,
+    ExpectedTsunamiInundationResponse,
     FirePreventionDistrictsAndQuasiFirePreventionDistrictsResponse,
     FuturePopulationEstimatesBy250mMeshResponse,
     HighLevelUseDistrictsResponse,
@@ -874,6 +877,59 @@ class Client:
         :raises ValueError: If `z` is not between 11 and 15.
         """
         return self._get_tile("XKT024", z, x, y)
+
+    def get_expected_flood_inundation_areas_at_maximum_scale(
+        self, z: int, x: int, y: int
+    ) -> ExpectedFloodInundationAreasAtMaximumScaleResponse:
+        """Get expected flood inundation areas at maximum scale (洪水浸水想定区域（想定最大規模）).
+
+        Where a river is expected to inundate under the largest rainfall that can be
+        envisaged for the area, designated under the Flood Prevention Act.
+
+        Only 想定最大規模. 国土数値情報 publishes four 洪水浸水想定区域 categories and this
+        endpoint serves that one. 計画規模, the rainfall a river is engineered for, covers a
+        smaller area and is not available here.
+        See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt026/ for details.
+        :param z: Zoom level (scale). 14 (block) ~ 15 (detail)
+        :param x: x value of tile coordinates.
+        :param y: y value of tile coordinates.
+        :return: Expected flood inundation areas at maximum scale. (Response format: GeoJson)
+        :raises ValueError: If `z` is not between 14 and 15.
+        """
+        # The narrowest range of any endpoint, along with XKT028.
+        return self._get_tile("XKT026", z, x, y, zoom_levels=range(14, 16))
+
+    def get_expected_storm_surge_inundation_areas(
+        self, z: int, x: int, y: int
+    ) -> ExpectedStormSurgeInundationAreasResponse:
+        """Get expected storm surge inundation areas (高潮浸水想定区域).
+
+        Where a storm surge is expected to inundate, designated under the Flood Prevention
+        Act. Unlike XKT026 the manual names no scale, so the whole dataset is returned.
+        See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt027/ for details.
+        :param z: Zoom level (scale). 13 ~ 15 (detail)
+        :param x: x value of tile coordinates.
+        :param y: y value of tile coordinates.
+        :return: Expected storm surge inundation areas. (Response format: GeoJson)
+        :raises ValueError: If `z` is not between 13 and 15.
+        """
+        return self._get_tile("XKT027", z, x, y, zoom_levels=range(13, 16))
+
+    def get_expected_tsunami_inundation(self, z: int, x: int, y: int) -> ExpectedTsunamiInundationResponse:
+        """Get expected tsunami inundation (津波浸水想定).
+
+        The inundation a prefecture has set as expected from a tsunami, under the Act on
+        Regional Development for Tsunami Disaster Prevention. Singular because the Japanese
+        names the 想定 itself rather than a designated area, although the response carries one
+        feature per depth band.
+        See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt028/ for details.
+        :param z: Zoom level (scale). 14 (block) ~ 15 (detail)
+        :param x: x value of tile coordinates.
+        :param y: y value of tile coordinates.
+        :return: Expected tsunami inundation. (Response format: GeoJson)
+        :raises ValueError: If `z` is not between 14 and 15.
+        """
+        return self._get_tile("XKT028", z, x, y, zoom_levels=range(14, 16))
 
     def get_sediment_disaster_alert_areas(self, z: int, x: int, y: int) -> SedimentDisasterAlertAreasResponse:
         """Get sediment disaster alert areas (土砂災害警戒区域).

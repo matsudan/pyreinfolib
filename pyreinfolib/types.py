@@ -877,6 +877,57 @@ class HighLevelUseDistrictsProperties(TypedDict, total=False):
 HighLevelUseDistrictsResponse = FeatureCollection[HighLevelUseDistrictsProperties]
 
 
+class ExpectedFloodInundationAreasAtMaximumScaleProperties(TypedDict, total=False):
+    """One feature's `properties` from XKT026, 国土数値情報（洪水浸水想定区域（想定最大規模））API.
+
+    Keyed `A31a_*`: 国土数値情報 splits its 洪水浸水想定区域 data into four categories and this
+    endpoint serves one of them.
+
+    See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt026/
+    """
+
+    A31a_201: str  # 河川番号
+    A31a_202: str  # 河川名
+    A31a_203: str  # 河川管理番号
+    A31a_204: str  # 河川管理者
+    A31a_205: int  # 浸水深ランク
+
+
+ExpectedFloodInundationAreasAtMaximumScaleResponse = FeatureCollection[
+    ExpectedFloodInundationAreasAtMaximumScaleProperties
+]
+
+
+class ExpectedStormSurgeInundationAreasProperties(TypedDict, total=False):
+    """One feature's `properties` from XKT027, 国土数値情報（高潮浸水想定区域）API.
+
+    See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt027/
+    """
+
+    A49_001: str  # 都道府県名
+    A49_002: str  # 都道府県コード
+    A49_003: str  # 浸水深区分
+    target_year: int  # 対象年
+
+
+ExpectedStormSurgeInundationAreasResponse = FeatureCollection[ExpectedStormSurgeInundationAreasProperties]
+
+
+class ExpectedTsunamiInundationProperties(TypedDict, total=False):
+    """One feature's `properties` from XKT028, 国土数値情報（津波浸水想定）API.
+
+    See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt028/
+    """
+
+    A40_001: str  # 都道府県名
+    A40_002: str  # 都道府県コード
+    A40_003: str  # 津波浸水深の区分
+    target_year: int  # 対象年
+
+
+ExpectedTsunamiInundationResponse = FeatureCollection[ExpectedTsunamiInundationProperties]
+
+
 class SedimentDisasterAlertAreasProperties(TypedDict, total=False):
     """One feature's `properties` from XKT029, 国土数値情報（土砂災害警戒区域）API.
 

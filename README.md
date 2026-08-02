@@ -89,6 +89,9 @@ client.get_appraisal_reports(year=2024, area="13", division=UseDivision.INDUSTRI
 | `get_municipal_offices_and_public_meeting_facilities_etc` | XKT018 | 市区町村役場及び集会施設等 | 13〜15 |
 | `get_district_plans` | XKT023 | 地区計画 | 11〜15 |
 | `get_high_level_use_districts` | XKT024 | 高度利用地区 | 11〜15 |
+| `get_expected_flood_inundation_areas_at_maximum_scale` | XKT026 | 洪水浸水想定区域（想定最大規模） | 14〜15 |
+| `get_expected_storm_surge_inundation_areas` | XKT027 | 高潮浸水想定区域 | 13〜15 |
+| `get_expected_tsunami_inundation` | XKT028 | 津波浸水想定 | 14〜15 |
 | `get_sediment_disaster_alert_areas` | XKT029 | 土砂災害警戒区域 | 11〜15 |
 | `get_city_planning_roads` | XKT030 | 都市計画道路 | 11〜15 |
 | `get_designated_emergency_evacuation_sites` | XGT001 | 指定緊急避難場所 | 11〜15 |
@@ -174,7 +177,9 @@ client.get_number_of_passengers_per_station(*tile)
 
 `Tile` は `z, x, y` の順なので、タイル系メソッドにそのまま展開して渡せます。
 
-受け付けるズームレベルはエンドポイントごとに違います（多くは11〜15、`get_land_market_value_publication_and_research_point` は13〜15）。範囲外を渡すと、どのエンドポイントが何を期待しているかを含む `ValueError` になります。`tiles` 側はエンドポイントを知らないのでそこでは検証しません。
+受け付けるズームレベルはエンドポイントごとに違います。9〜15、11〜15、13〜15、14〜15 の4種類があり、多くは11〜15です。最も広いのは `get_natural_park_areas` と `get_densely_inhabited_districts` の9〜15、最も狭いのは `get_expected_flood_inundation_areas_at_maximum_scale` と `get_expected_tsunami_inundation` の14〜15です。上の表の「ズーム」列に載せています。
+
+範囲外を渡すと、どのエンドポイントが何を期待しているかを含む `ValueError` になります。`tiles` 側はエンドポイントを知らないのでそこでは検証しません。
 
 引数は名前を付けて渡します（位置引数では渡せません）。緯度と経度はどちらも `float` なので、順序を取り違えても型では気づけないためです。
 

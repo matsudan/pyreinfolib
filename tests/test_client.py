@@ -930,6 +930,9 @@ TILE_ONLY_ENDPOINTS = [
     ("get_municipal_offices_and_public_meeting_facilities_etc", "XKT018", range(13, 16)),
     ("get_district_plans", "XKT023", range(11, 16)),
     ("get_high_level_use_districts", "XKT024", range(11, 16)),
+    ("get_expected_flood_inundation_areas_at_maximum_scale", "XKT026", range(14, 16)),
+    ("get_expected_storm_surge_inundation_areas", "XKT027", range(13, 16)),
+    ("get_expected_tsunami_inundation", "XKT028", range(14, 16)),
     ("get_sediment_disaster_alert_areas", "XKT029", range(11, 16)),
     ("get_city_planning_roads", "XKT030", range(11, 16)),
     ("get_designated_emergency_evacuation_sites", "XGT001", range(11, 16)),
@@ -985,15 +988,23 @@ class TestTileOnlyEndpoints:
             with pytest.raises(ValueError, match=endpoint):
                 getattr(client, method_name)(z=z, x=1819, y=806)
 
-    def test_the_endpoints_taking_thirteen_and_up_are_the_documented_ones(self, client):
-        """Pinned as a set so that a range copied from the neighbouring method is visible.
+    @pytest.mark.parametrize(
+        ("start", "expected"),
+        [
+            (13, {"XKT006", "XKT007", "XKT010", "XKT018", "XKT027"}),
+            (14, {"XKT026", "XKT028"}),
+        ],
+        ids=["thirteen and up", "fourteen and up"],
+    )
+    def test_the_endpoints_with_a_narrower_range_are_the_documented_ones(self, client, start, expected):
+        """Pinned as sets so that a range copied from the neighbouring method is visible.
 
-        These four differ from the rest, and nothing about a wrong range shows up in a
-        response: the request simply never leaves.
+        Nothing about a wrong range shows up in a response: the request simply never leaves.
+        XKT026 and XKT028 start at 14, which is the narrowest the API documents.
         """
-        narrower = {endpoint for _, endpoint, levels in TILE_ONLY_ENDPOINTS if levels.start == 13}
+        narrower = {endpoint for _, endpoint, levels in TILE_ONLY_ENDPOINTS if levels.start == start}
 
-        assert narrower == {"XKT006", "XKT007", "XKT010", "XKT018"}
+        assert narrower == expected
 
     def test_a_tile_from_the_helpers_reaches_every_one_of_them(self, mock_api, client):
         """`*tile` has to keep working as endpoints are added, not just for the first three."""
