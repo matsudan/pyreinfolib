@@ -22,7 +22,6 @@ from pyreinfolib.types import (
     ExpectedStormSurgeInundationAreasResponse,
     ExpectedTsunamiInundationResponse,
     FirePreventionDistrictsAndQuasiFirePreventionDistrictsResponse,
-    FuturePopulationEstimatesBy250mMeshResponse,
     HighLevelUseDistrictsResponse,
     JuniorHighSchoolDistrictsResponse,
     LandMarketValuePublicationAndResearchPointResponse,
@@ -33,10 +32,11 @@ from pyreinfolib.types import (
     LocationNormalizationPlansResponse,
     MedicalInstitutionsResponse,
     MunicipalitiesResponse,
-    MunicipalOfficesAndPublicMeetingFacilitiesEtcResponse,
+    MunicipalOfficesAndMeetingFacilitiesEtcResponse,
     NaturalParkAreasResponse,
     NumberOfPassengersPerStationResponse,
     NurserySchoolsAndKindergartensEtcResponse,
+    PopulationProjectionsIn250mGridSquaresResponse,
     RealEstatePricesPointResponse,
     RealEstatePricesResponse,
     SchoolsResponse,
@@ -648,9 +648,9 @@ class Client:
             zoom_levels=range(13, 16),
         )
 
-    def get_future_population_estimates_by_250m_mesh(
+    def get_population_projections_in_250m_grid_squares(
         self, z: int, x: int, y: int
-    ) -> FuturePopulationEstimatesBy250mMeshResponse:
+    ) -> PopulationProjectionsIn250mGridSquaresResponse:
         """Get future population estimates by 250m mesh (将来推計人口250mメッシュ).
         See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt013/ for details.
         :param z: Zoom level (scale). 11 (city) ~ 15 (detail)
@@ -758,9 +758,9 @@ class Client:
             zoom_levels=range(13, 16),
         )
 
-    def get_municipal_offices_and_public_meeting_facilities_etc(
+    def get_municipal_offices_and_meeting_facilities_etc(
         self, z: int, x: int, y: int
-    ) -> MunicipalOfficesAndPublicMeetingFacilitiesEtcResponse:
+    ) -> MunicipalOfficesAndMeetingFacilitiesEtcResponse:
         """Get municipal offices and public meeting facilities etc. (市区町村役場及び集会施設等).
         See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt018/ for details.
         :param z: Zoom level (scale). 13 ~ 15 (detail)

@@ -259,7 +259,7 @@ APIキーが手元にあるときに、この順で確認してください。�
 | 整数型・実数型・真偽型のフィールドが `null` で来ることがあるか | 全般。XKT013 の `GASSAN20XX` はデータ例が空 | `\| None` へ広げる。**読み取り側にとって破壊的** なので、ここだけは実物を見ないと動かせない |
 | キーが省略されるのか空文字で来るのか | `get_real_estate_prices` で農地・林地と中古マンションを比べる | 常に来るキーは `total=False` から必須に締められる（非破壊） |
 | エンドポイントごとのジオメトリ種別 | タイル系全般。XKT029 は「ポリゴンとライン混在」とマニュアルが明記 | `Geometry` の合併型をエンドポイント別に狭められる |
-| XKT013 のキーに入る年 | `get_future_population_estimates_by_250m_mesh` | 年が固定なら `dict[str, Any]` を `TypedDict` にできる |
+| XKT013 のキーに入る年 | `get_population_projections_in_250m_grid_squares` | 年が固定なら `dict[str, Any]` を `TypedDict` にできる |
 | XKT007 の2つの形が共有フィールドの値で判別できるか | `get_nursery_schools_and_kindergartens_etc` | 判別できるなら union + 絞り込みにできる |
 
 締める方向（`total=False` → 必須、合併型を狭める、`Literal` にする）は読み取り側にとって非破壊です。広げる方向（`None` を足す）は破壊的なので、`feat!:` が必要になります。
@@ -423,6 +423,19 @@ MLIT 用語集は `Land （Market） Value` と括弧付きで記載していま
 **それでも15件のメソッド名を裏付けました。** 特に根拠が弱かった3件が確認できています。立地適正化計画（二次資料のみ）、都市計画道路（合成）、地すべり防止地区（公定訳の `area` に逆らってAPI名の `地区` を採用）。3つ目は「[API 名と公定訳が食い違うときは API 名に従います](#api-名と公定訳が食い違うときは-api-名に従います)」の判断が正しかったことの裏付けです。
 
 **相違があったときは、根拠の強い方を採ります。** こちらが法令やMLIT用語集を典拠にしているならそのまま、こちらが合成や推測で決めていたなら地図のラベルに寄せます。どちらを採ったかと理由を用語集に残してください。
+
+**寄せた2件**は、こちらの名前にどの語の典拠もなかったものです。
+
+| 日本語 | 変更前 | 変更後 |
+|---|---|---|
+| 市区町村役場及び集会施設等 | `..._and_public_meeting_facilities_etc` | `..._and_meeting_facilities_etc` |
+| 将来推計人口250mメッシュ | `get_future_population_estimates_by_250m_mesh` | `get_population_projections_in_250m_grid_squares` |
+
+1件目の `public` は日本語にない語をこちらが足していたもので、訳語の選択ではなく誤りでした。
+
+2件目は地図のラベルを調べ直したところ、3語すべてに作成機関の裏付けがありました。将来推計人口 は[国立社会保障・人口問題研究所](https://www.ipss.go.jp/index-e.asp)が `Population Projections for Japan` として公表しています。`将来` が落ちるのは `projections` が将来を含意するためで、同研究所も落としています。メッシュ は[総務省統計局](https://www.stat.go.jp/english/data/mesh/index.html)が `Grid Square Statistics` を使っています。
+
+**`250m` は `250-meter` にしませんでした。** 地図のラベルは `250-meter` ですが、API名が 250m で、名前はAPI名から導出します。`250-meter` は散文の表記慣習と判断しました。
 
 ### 未確定
 
