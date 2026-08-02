@@ -1,0 +1,968 @@
+"""The shape of the bodies the API returns.
+
+These are `TypedDict`s, so they are a static claim and nothing more: no member is checked at
+runtime, and `Client` does not validate what it decoded. What they buy is that `r["data"][0]`
+and a feature's `properties` stop being `Any`, so a misspelled key is a type error rather than
+a `KeyError` found by whoever runs the code next.
+
+**Keys are the API's own tag names, verbatim.** Each endpoint's manual page carries an
+`＜出力＞` table whose タグ名 column is the JSON key, and that column is copied here without
+being tidied. That means the inconsistencies come along: 国土数値情報 attribute codes
+(`A27_001`), romanised Japanese (`kubun_id`), a `_ja` suffix on the fields that follow the
+`language` parameter, Japanese keys with U+3000 spaces in XCT001, and at least one typo of the
+API's own (`proximity_to_transportation_facilitites` in XPT002). Correcting any of them would
+produce a key that does not exist in the response.
+
+**Value types are the ones the manual declares** -- 文字列型 as `str`, 整数型 as `int`, 実数型
+as `float`, 真偽型 as `bool`. Note that the manual declares a type per endpoint, not per field
+name, and it disagrees with itself: `kubun_id` is 整数型 on XKT001, XKT003, XKT014 and XKT030,
+and 文字列型 on XKT023 and XKT024. Each is written as its own page documents it.
+
+**Every record field is optional** (`total=False`). The manual gives no field a "required"
+marker and leaves the データ例 column blank for many of them, so which keys are actually
+present in a given record is not documented. Reading a key still type checks; what
+`total=False` avoids is claiming a guarantee the API does not make. A field confirmed against
+a live response can be tightened later, one at a time.
+
+Nullability is not modelled, for the same reason and with less evidence: the manual says
+nothing about it. Every field whose declared type is not 文字列型 does at least carry a
+concrete データ例, so the declared type is attested for those. If a field turns out to arrive
+as `null`, widening it to `| None` is a breaking change for readers, so it wants a live
+response rather than a guess.
+"""
+
+from typing import Any, Generic, Literal, TypedDict, TypeVar
+
+# GeoJSON, as the tile endpoints return it when asked for `response_format=geojson`.
+#
+# A position is `[longitude, latitude]`, optionally with an altitude. `list` rather than a
+# tuple because that is what `json` produces, and `float` covers the integers a decoder may
+# hand back for a whole-numbered coordinate.
+Position = list[float]
+
+
+class Point(TypedDict):
+    type: Literal["Point"]
+    coordinates: Position
+
+
+class MultiPoint(TypedDict):
+    type: Literal["MultiPoint"]
+    coordinates: list[Position]
+
+
+class LineString(TypedDict):
+    type: Literal["LineString"]
+    coordinates: list[Position]
+
+
+class MultiLineString(TypedDict):
+    type: Literal["MultiLineString"]
+    coordinates: list[list[Position]]
+
+
+class Polygon(TypedDict):
+    type: Literal["Polygon"]
+    coordinates: list[list[Position]]
+
+
+class MultiPolygon(TypedDict):
+    type: Literal["MultiPolygon"]
+    coordinates: list[list[list[Position]]]
+
+
+# A union rather than one type per endpoint, because the manual's output tables say nothing
+# about geometry, and the one endpoint that does mention it says its data is mixed: XKT029
+# notes that some areas come back as lines rather than polygons. Narrow on `type` to read
+# `coordinates`; the tag is what makes that possible.
+Geometry = Point | MultiPoint | LineString | MultiLineString | Polygon | MultiPolygon
+
+P = TypeVar("P")
+
+
+class Feature(TypedDict, Generic[P]):
+    """One GeoJSON feature. `P` is the endpoint's properties type.
+
+    `geometry` is optional in GeoJSON itself, hence `| None`. No response has been observed
+    using that, but the format allows it and a decoded `None` would otherwise be a lie.
+    """
+
+    type: Literal["Feature"]
+    geometry: Geometry | None
+    properties: P
+
+
+class FeatureCollection(TypedDict, Generic[P]):
+    """What a tile endpoint returns. Empty `features` is the normal answer for an empty tile.
+
+    Endpoints addressed by tile coordinates answer 200 with no features rather than 404, so
+    this arrives rather than `NoResultsError` whenever a tile holds nothing.
+    """
+
+    type: Literal["FeatureCollection"]
+    features: list[Feature[P]]
+
+
+T = TypeVar("T")
+
+
+class DataResponse(TypedDict, Generic[T]):
+    """What the three endpoints that do not take tile coordinates return.
+
+    Unlike everything below, this envelope is not in the manual: its output tables describe
+    one record and stop. The two keys are what the API is observed to send, and what this
+    repository's tests have assumed since before these types existed.
+
+    `status` is not a `Literal["OK"]` because the full set of values it can take is unknown,
+    and an error status never reaches here anyway -- a non-2xx response raises.
+    """
+
+    status: str
+    data: list[T]
+
+
+# XKT013 is the one endpoint whose keys cannot be written down. All but `MESH_ID` and
+# `SHICODE` are named after the year they hold, and the manual writes that year as a
+# placeholder: `PT01_20XX`, `RTA_20XX`, `HITOKU20XX`. Which years a response actually carries
+# depends on the estimate published, so a `TypedDict` here would either be wrong or would have
+# to invent the year. An open mapping is the honest type; the feature collection around it is
+# still precise.
+FuturePopulationEstimatesBy250mMeshProperties = dict[str, Any]
+FuturePopulationEstimatesBy250mMeshResponse = FeatureCollection[FuturePopulationEstimatesBy250mMeshProperties]
+
+
+class RealEstatePricesItem(TypedDict, total=False):
+    """One record of `data` from XIT001, 不動産価格（取引価格・成約価格）情報取得API.
+
+    See https://www.reinfolib.mlit.go.jp/help/apiManual/xit001/
+    """
+
+    Type: str  # 取引の種類
+    Region: str  # 地域
+    MunicipalityCode: str  # 市区町村コード
+    Prefecture: str  # 都道府県名
+    Municipality: str  # 市区町村名
+    DistrictName: str  # 地区名
+    TradePrice: str  # 取引価格（総額）
+    PricePerUnit: str  # 坪単価
+    FloorPlan: str  # 間取り
+    Area: str  # 面積（平方メートル）
+    UnitPrice: str  # 取引価格（平方メートル単価）
+    LandShape: str  # 土地の形状
+    Frontage: str  # 間口
+    TotalFloorArea: str  # 延床面積（平方メートル）
+    BuildingYear: str  # 建築年
+    Structure: str  # 建物の構造
+    Use: str  # 用途
+    Purpose: str  # 今後の利用目的
+    Direction: str  # 前面道路：方位
+    Classification: str  # 前面道路：種類
+    Breadth: str  # 前面道路：幅員（m）
+    CityPlanning: str  # 都市計画
+    CoverageRatio: str  # 建蔽率（%）
+    FloorAreaRatio: str  # 容積率（%）
+    Period: str  # 取引時点
+    Renovation: str  # 改装
+    Remarks: str  # 取引の事情等
+    PriceCategory: str  # 価格情報区分
+    DistrictCode: str  # 地区コード
+
+
+RealEstatePricesResponse = DataResponse[RealEstatePricesItem]
+
+
+class MunicipalitiesItem(TypedDict, total=False):
+    """One record of `data` from XIT002, 都道府県内市区町村一覧取得API.
+
+    See https://www.reinfolib.mlit.go.jp/help/apiManual/xit002/
+    """
+
+    id: str  # 市区町村コード
+    # The manual lists `name` twice, once as 市区町村名（日本語） and once as
+    # 市区町村名（英語）. It is one key either way; which language it holds follows the
+    # `language` argument.
+    name: str  # 市区町村名
+
+
+MunicipalitiesResponse = DataResponse[MunicipalitiesItem]
+
+
+# One record of `data` from XCT001, 鑑定評価書情報API.
+#
+# Written with the functional syntax because the keys are not identifiers: this
+# endpoint names its fields in Japanese, with U+3000 ideographic spaces separating
+# the levels of the source spreadsheet's column headings. A few use a plain space
+# instead; both are reproduced as the manual has them.
+#
+# See https://www.reinfolib.mlit.go.jp/help/apiManual/xct001/
+AppraisalReportsItem = TypedDict(
+    "AppraisalReportsItem",
+    {
+        "価格時点": str,
+        "標準地番号　市区町村コード　県コード": str,
+        "標準地番号　市区町村コード　市区町村コード": str,
+        "標準地番号　地域名": str,
+        "標準地番号　用途区分コード": str,
+        "標準地番号　連番": str,
+        "1㎡当たりの価格": str,
+        "路線価　年": str,
+        "路線価　相続税路線価": str,
+        "路線価　倍率": str,
+        "路線価　倍率種別": str,
+        "標準地　所在地　所在地番": str,
+        "標準地　所在地　住居表示": str,
+        "標準地　所在地　仮換地番号": str,
+        "標準地　地積　地積": str,
+        "標準地　地積　内私道分": str,
+        "標準地　形状　形状": str,
+        "標準地　形状　形状比　間口": str,
+        "標準地　形状　形状比　奥行": str,
+        "標準地　形状　方位": str,
+        "標準地　形状　平坦": str,
+        "標準地　形状　傾斜度": str,
+        "標準地　土地利用の現況　現況": str,
+        "標準地　土地利用の現況　構造コード": str,
+        "標準地　土地利用の現況　地上階数": str,
+        "標準地　土地利用の現況　地下階数": str,
+        "標準地　周辺の利用状況": str,
+        "標準地　接面道路の状況　前面道路　方位": str,
+        "標準地　接面道路の状況　前面道路　駅前区分": str,
+        "標準地　接面道路の状況　前面道路　高低位置": str,
+        "標準地　接面道路の状況　前面道路　道路幅員": str,
+        "標準地　接面道路の状況　前面道路　舗装状況": str,
+        "標準地　接面道路の状況　前面道路　道路種別": str,
+        "標準地　接面道路の状況　側道方位": str,
+        "標準地 接面道路の状況 側道等接面状況": str,
+        "標準地　供給処理施設　水道": str,
+        "標準地　供給処理施設　ガス": str,
+        "標準地　供給処理施設　下水道": str,
+        "標準地　交通施設の状況　交通施設": str,
+        "標準地　交通施設の状況　距離": str,
+        "標準地　交通施設の状況　近接区分": str,
+        "標準地　法令上の規制等　区域区分": str,
+        "標準地　法令上の規制等　用途地域": str,
+        "標準地　法令上の規制等　指定建蔽率": str,
+        "標準地　法令上の規制等　指定容積率": str,
+        "標準地　法令上の規制等　防火地域": str,
+        "標準地　法令上の規制等　森林法": str,
+        "標準地　法令上の規制等　自然公園法": str,
+        "標準地　法令上の規制等　その他　その他地域地区等1": str,
+        "標準地　法令上の規制等　その他　その他地域地区等2": str,
+        "標準地　法令上の規制等　その他　その他地域地区等3": str,
+        "標準地　法令上の規制等　その他　高度地区1　種": str,
+        "標準地　法令上の規制等　その他　高度地区1　高度区分": str,
+        "標準地　法令上の規制等　その他　高度地区1　高度": str,
+        "標準地　法令上の規制等　その他　高度地区2　種": str,
+        "標準地　法令上の規制等　その他　高度地区2　高度区分": str,
+        "標準地　法令上の規制等　その他　高度地区2　高度": str,
+        "標準地　法令上の規制等　その他　基準建蔽率": str,
+        "標準地　法令上の規制等　その他　基準容積率": str,
+        "標準地　法令上の規制等　自然環境等コード1": str,
+        "標準地　法令上の規制等　自然環境等コード2": str,
+        "標準地　法令上の規制等　自然環境等コード3": str,
+        "標準地　法令上の規制等　自然環境等文言": str,
+        "鑑定評価手法の適用 取引事例比較法比準価格": str,
+        "鑑定評価手法の適用 控除法　控除後価格": str,
+        "鑑定評価手法の適用 収益還元法 収益価格": str,
+        "鑑定評価手法の適用 原価法 積算価格": str,
+        "鑑定評価手法の適用 開発法 開発法による価格": str,
+        "比準価格算定内訳事例a 取引価格": str,
+        "比準価格算定内訳事例a 推定価格": str,
+        "比準価格算定内訳事例a 標準価格": str,
+        "比準価格算定内訳事例a 査定価格": str,
+        "比準価格算定内訳事例b 取引価格": str,
+        "比準価格算定内訳事例b 推定価格": str,
+        "比準価格算定内訳事例b 標準価格": str,
+        "比準価格算定内訳事例b 査定価格": str,
+        "比準価格算定内訳事例c 取引価格": str,
+        "比準価格算定内訳事例c 推定価格": str,
+        "比準価格算定内訳事例c 標準価格": str,
+        "比準価格算定内訳事例c 査定価格": str,
+        "比準価格算定内訳事例d 取引価格": str,
+        "比準価格算定内訳事例d 推定価格": str,
+        "比準価格算定内訳事例d 標準価格": str,
+        "比準価格算定内訳事例d 査定価格": str,
+        "比準価格算定内訳事例e 取引価格": str,
+        "比準価格算定内訳事例e 推定価格": str,
+        "比準価格算定内訳事例e 標準価格": str,
+        "比準価格算定内訳事例e 査定価格": str,
+        "積算価格算定内訳素地の取得価格": str,
+        "積算価格算定内訳造成工事費": str,
+        "積算価格算定内訳再調達原価": str,
+        "収益価格算定内訳総収益": str,
+        "収益価格算定内訳総費用": str,
+        "収益価格算定内訳純収益": str,
+        "収益価格算定内訳建物に帰属する純収益": str,
+        "収益価格算定内訳土地に帰属する純収益": str,
+        "収益価格算定内訳未収入期間修正後の純収益": str,
+        "収益価格算定内訳還元利回り": str,
+        "開発法価格算定内訳 収入の現価の総和": str,
+        "開発法価格算定内訳 支出の現価の総和": str,
+        "開発法価格算定内訳 投下資本収益率": str,
+        "開発法価格算定内訳 販売単価(住宅)": str,
+        "開発法価格算定内訳 分譲可能床面積": str,
+        "開発法価格算定内訳 建築工事費": str,
+        "開発法価格算定内訳 延床面積": str,
+        "公示価格": str,
+        "変動率": str,
+        "緯度": str,
+        "経度": str,
+    },
+    total=False,
+)
+
+AppraisalReportsResponse = DataResponse[AppraisalReportsItem]
+
+
+class RealEstatePricesPointProperties(TypedDict, total=False):
+    """One feature's `properties` from XPT001, 不動産価格（取引価格・成約価格）情報のポイント (点) API.
+
+    See https://www.reinfolib.mlit.go.jp/help/apiManual/xpt001/
+    """
+
+    price_information_category_name_ja: str  # 価格情報区分
+    district_code: str  # 地区コード
+    city_code: str  # 市区町村コード
+    prefecture_name_ja: str  # 都道府県名
+    city_name_ja: str  # 市区町村名
+    district_name_ja: str  # 地区名
+    u_transaction_price_total_ja: str  # 取引価格（総額）
+    u_unit_price_per_tsubo_ja: str  # 坪単価
+    floor_plan_name_ja: str  # 間取り
+    u_area_ja: str  # 面積
+    u_transaction_price_unit_price_square_meter_ja: str  # 取引価格（平方メートル単価）
+    land_shape_name_ja: str  # 土地の形状
+    u_land_frontage_ja: str  # 間口
+    u_building_total_floor_area_ja: str  # 建物の延床面積
+    u_construction_year_ja: str  # 建築年
+    building_structure_name_ja: str  # 建物の構造
+    land_use_name_ja: str  # 用途地域
+    future_use_purpose_name_ja: str  # 今後の利用目的
+    front_road_azimuth_name_ja: str  # 前面道路の方位
+    front_road_type_name_ja: str  # 前面道路の種類
+    u_front_road_width_ja: str  # 前面道路の幅員
+    u_building_coverage_ratio_ja: str  # 建蔽率
+    u_floor_area_ratio_ja: str  # 容積率
+    point_in_time_name_ja: str  # 取引時点
+    remark_renovation_name_ja: str  # 改装
+    remark_name_ja: str  # 取引の事情等
+    land_type_name_ja: str  # 取引の種類
+    use_category_name_ja: str  # 地域
+    building_use_name_ja: str  # 用途
+
+
+RealEstatePricesPointResponse = FeatureCollection[RealEstatePricesPointProperties]
+
+
+class LandMarketValuePublicationAndResearchPointProperties(TypedDict, total=False):
+    """One feature's `properties` from XPT002, 地価公示・地価調査のポイント (点) API.
+
+    See https://www.reinfolib.mlit.go.jp/help/apiManual/xpt002/
+    """
+
+    point_id: int  # 地点ID
+    target_year_name_ja: str  # 対象年
+    land_price_type: int  # 地価区分
+    prefecture_code: str  # 都道府県コード
+    prefecture_name_ja: str  # 都道府県名
+    city_code: str  # 市区町村コード
+    use_category_name_ja: str  # 用途区分名
+    standard_lot_number_ja: str  # 標準地/基準地番号
+    city_county_name_ja: str  # 市郡名
+    ward_town_village_name_ja: str  # 区町村名
+    place_name_ja: str  # 地名
+    residence_display_name_ja: str  # 住居表示
+    location_number_ja: str  # 所在及び地番
+    u_current_years_price_ja: str  # 当年価格
+    last_years_price: int  # 前年価格
+    year_on_year_change_rate: str  # 対前年変動率
+    u_cadastral_ja: str  # 地積
+    frontage_ratio: int  # 間口比率
+    depth_ratio: int  # 奥行き比率
+    building_structure_name_ja: str  # 構造
+    u_ground_hierarchy_ja: str  # 地上階層
+    u_underground_hierarchy_ja: str  # 地下階層
+    front_road_name_ja: str  # 前面道路区分
+    front_road_azimuth_name_ja: str  # 前面道路の方位区分
+    front_road_width: int  # 前面道路の幅員
+    front_road_pavement_condition: str  # 前面道路の舗装状況
+    side_road_azimuth_name_ja: str  # 側道の方位区分
+    side_road_name_ja: str  # 側道区分
+    gas_supply_availability: bool  # ガスの有無
+    water_supply_availability: bool  # 水道の有無
+    sewer_supply_availability: bool  # 下水道の有無
+    nearest_station_name_ja: str  # 最寄り駅名
+    # `facilitites` is the API's spelling, not a typo introduced here: it carries an extra `t`
+    # where the word is `facilities`. Correcting it would name a key no response contains.
+    proximity_to_transportation_facilitites: int  # 交通施設との近接区分
+    u_road_distance_to_nearest_station_name_ja: str  # 最寄り駅までの道路距離
+    usage_status_name_ja: str  # 利用現況
+    current_usage_status_of_surrounding_land_name_ja: str  # 周辺の土地の利用現況
+    area_division_name_ja: str  # 区域区分
+    regulations_use_category_name_ja: str  # 法規制・用途区分
+    regulations_altitude_district_name_ja: str  # 法規制・高度地区
+    regulations_fireproof_name_ja: str  # 法規制・防火・準防火
+    u_regulations_building_coverage_ratio_ja: str  # 法規制・建蔽率
+    u_regulations_floor_area_ratio_ja: str  # 法規制・容積率
+    regulations_forest_law_name_ja: str  # 法規制・森林法
+    regulations_park_law_name_ja: str  # 法規制・公園法
+    pause_flag: int  # 休止フラグ
+    usage_category_name_ja: str  # 利用区分名
+    location: str  # 所在及び地番
+    shape: str  # 形状（間口：奥行き）
+    front_road_condition: str  # 前面道路の状況
+    side_road_condition: str  # その他の接面道路
+    park_forest_law: str  # 森林法、公園法、自然環境等
+
+
+LandMarketValuePublicationAndResearchPointResponse = FeatureCollection[
+    LandMarketValuePublicationAndResearchPointProperties
+]
+
+
+class CityPlanningAreasAndAreaClassificationProperties(TypedDict, total=False):
+    """One feature's `properties` from XKT001, 都市計画決定GISデータ（都市計画区域/区域区分）API.
+
+    See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt001/
+    """
+
+    prefecture: str  # 都道府県名
+    city_code: str  # 市区町村コード
+    city_name: str  # 市区町村名
+    kubun_id: int  # 区分コード
+    decision_date: str  # 設定年月日
+    decision_classification: str  # 設定区分
+    decision_maker: str  # 設定者名
+    notice_number: str  # 告示番号
+    area_classification_ja: str  # 区域区分
+    first_decision_date: str  # 当初決定日
+    notice_number_s: str  # 告示番号S
+
+
+CityPlanningAreasAndAreaClassificationResponse = FeatureCollection[CityPlanningAreasAndAreaClassificationProperties]
+
+
+class UseDistrictsProperties(TypedDict, total=False):
+    """One feature's `properties` from XKT002, 都市計画決定GISデータ（用途地域）API.
+
+    See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt002/
+    """
+
+    youto_id: int  # 用途地域分類
+    prefecture: str  # 都道府県名
+    city_code: str  # 市区町村コード
+    city_name: str  # 市区町村名
+    decision_date: str  # 区域設定年月日
+    decision_classification: str  # 設定区分
+    decision_maker: str  # 設定者名
+    notice_number: str  # 告示番号
+    use_area_ja: str  # 用途地域名
+    u_floor_area_ratio_ja: str  # 容積率
+    u_building_coverage_ratio_ja: str  # 建蔽率
+    first_decision_date: str  # 当初決定日
+    notice_number_s: str  # 告示番号S
+
+
+UseDistrictsResponse = FeatureCollection[UseDistrictsProperties]
+
+
+class LocationNormalizationPlansProperties(TypedDict, total=False):
+    """One feature's `properties` from XKT003, 都市計画決定GISデータ（立地適正化計画）API.
+
+    See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt003/
+    """
+
+    prefecture: str  # 都道府県名
+    city_code: str  # 行政区域コード
+    city_name: str  # 市区町村名
+    decision_date: str  # 区域設定年月日
+    decision_classification: str  # 設定区分
+    decision_maker: str  # 設定者名
+    notice_number: str  # 告示番号
+    kubun_id: int  # 区域コード
+    kubun_name_ja: str  # 区域名
+    area_classification_ja: str  # 区域区分
+    first_decision_date: str  # 当初決定日
+    notice_number_s: str  # 告示番号S
+
+
+LocationNormalizationPlansResponse = FeatureCollection[LocationNormalizationPlansProperties]
+
+
+class ElementarySchoolDistrictsProperties(TypedDict, total=False):
+    """One feature's `properties` from XKT004, 国土数値情報（小学校区）API.
+
+    See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt004/
+    """
+
+    A27_001: str  # 行政区域コード
+    A27_002: str  # 設置主体
+    A27_003: str  # 学校コード
+    A27_004_ja: str  # 名称
+    A27_005: str  # 所在地
+
+
+ElementarySchoolDistrictsResponse = FeatureCollection[ElementarySchoolDistrictsProperties]
+
+
+class JuniorHighSchoolDistrictsProperties(TypedDict, total=False):
+    """One feature's `properties` from XKT005, 国土数値情報（中学校区）API.
+
+    See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt005/
+    """
+
+    A32_001: str  # 行政区域コード
+    A32_002: str  # 設置主体
+    A32_003: str  # 学校コード
+    A32_004_ja: str  # 名称
+    A32_005: str  # 所在地
+
+
+JuniorHighSchoolDistrictsResponse = FeatureCollection[JuniorHighSchoolDistrictsProperties]
+
+
+class SchoolsProperties(TypedDict, total=False):
+    """One feature's `properties` from XKT006, 国土数値情報（学校）API.
+
+    See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt006/
+    """
+
+    P29_001: str  # 行政区域コード
+    P29_002: str  # 学校コード
+    P29_003: int  # 学校分類コード
+    P29_003_name_ja: str  # 学校分類名
+    P29_004_ja: str  # 名称
+    P29_005_ja: str  # 所在地
+    P29_006: int  # 管理者コード
+    P29_007: int  # 休校区分
+    P29_008: str  # キャンパスコード
+    P29_009_ja: str  # 学校名備考
+
+
+SchoolsResponse = FeatureCollection[SchoolsProperties]
+
+
+class NurserySchoolsAndKindergartensEtcProperties(TypedDict, total=False):
+    """One feature's `properties` from XKT007, 国土数値情報（保育園・幼稚園等）API.
+
+    The only endpoint whose manual documents two output tables: a 幼稚園 or こども園 feature
+    carries the school fields, a 保育園 feature carries the welfare facility class codes, and
+    four fields are common to both. The dataset is built by merging 国土数値情報「学校」 and
+    「福祉施設」, which is where the split comes from.
+
+    The two are merged into one type rather than made a union. Every field is optional either
+    way, so a union would buy nothing but force the caller to narrow before reading anything,
+    and there is no tag to narrow on -- the two shapes differ by which keys are present, not
+    by the value of a shared one.
+
+    See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt007/
+    """
+
+    # Common to both shapes.
+    administrativeAreaCode: str  # 行政区域コード
+    preSchoolName_ja: str  # 名称
+    location_ja: str  # 所在地
+    administratorCode: int  # 管理者コード
+
+    # 幼稚園 or こども園 only.
+    schoolCode: str  # 学校コード
+    schoolClassCode: int  # 学校分類コード
+    schoolClassCode_name_ja: str  # 学校分類名
+    closeSchoolCode: int  # 休校コード
+
+    # 保育園 only. The same three-level classification `get_welfare_facilities` filters on.
+    welfareFacilityClassCode: str  # 福祉施設大分類コード
+    welfareFacilityMiddleClassCode: str  # 福祉施設中分類コード
+    welfareFacilityMinorClassCode: str  # 福祉施設小分類コード
+
+
+NurserySchoolsAndKindergartensEtcResponse = FeatureCollection[NurserySchoolsAndKindergartensEtcProperties]
+
+
+class MedicalInstitutionsProperties(TypedDict, total=False):
+    """One feature's `properties` from XKT010, 国土数値情報（医療機関）API.
+
+    See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt010/
+    """
+
+    P04_001: int  # 医療機関分類
+    P04_001_name_ja: str  # 医療機関分類名
+    P04_002_ja: str  # 施設名称
+    P04_003_ja: str  # 所在地
+    P04_004: str  # 診療科目１
+    P04_005: str  # 診療科目２
+    P04_006: str  # 診療科目３
+    P04_007: int  # 開設者分類
+    P04_008: int  # 病床数
+    P04_009: int  # 救急告示病院
+    P04_010: int  # 災害拠点病院
+    medical_subject_ja: str  # 診療科目
+
+
+MedicalInstitutionsResponse = FeatureCollection[MedicalInstitutionsProperties]
+
+
+class WelfareFacilitiesProperties(TypedDict, total=False):
+    """One feature's `properties` from XKT011, 国土数値情報（福祉施設）API.
+
+    See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt011/
+    """
+
+    P14_001: str  # 都道府県名
+    P14_002: str  # 市区町村名
+    P14_003: str  # 行政区域コード
+    P14_004_ja: str  # 所在地
+    P14_005: str  # 福祉施設大分類コード
+    P14_005_name_ja: str  # 福祉施設大分類名
+    P14_006: str  # 福祉施設中分類コード
+    P14_006_name_ja: str  # 福祉施設中分類名
+    P14_007: str  # 福祉施設小分類コード
+    P14_008_ja: str  # 名称
+    P14_009: int  # 管理者コード
+    P14_010: int  # 位置正確度コード
+
+
+WelfareFacilitiesResponse = FeatureCollection[WelfareFacilitiesProperties]
+
+
+class FirePreventionDistrictsAndQuasiFirePreventionDistrictsProperties(TypedDict, total=False):
+    """One feature's `properties` from XKT014, 都市計画決定GISデータ（防火・準防火地域）API.
+
+    See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt014/
+    """
+
+    fire_prevention_ja: str  # 防火・準防火地域名
+    kubun_id: int  # 区分コード
+    prefecture: str  # 都道府県名
+    city_code: str  # 市区町村コード
+    city_name: str  # 市区町村名
+    decision_date: str  # 設定年月日
+    decision_classification: str  # 設定区分
+    decision_maker: str  # 設定者名
+    notice_number: str  # 告示番号
+    first_decision_date: str  # 当初決定日
+    notice_number_s: str  # 告示番号S
+
+
+FirePreventionDistrictsAndQuasiFirePreventionDistrictsResponse = FeatureCollection[
+    FirePreventionDistrictsAndQuasiFirePreventionDistrictsProperties
+]
+
+
+class NumberOfPassengersPerStationProperties(TypedDict, total=False):
+    """One feature's `properties` from XKT015, 国土数値情報（駅別乗降客数）API.
+
+    See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt015/
+    """
+
+    S12_001_ja: str  # 駅名
+    S12_001c: str  # 駅コード
+    S12_001g: str  # グループコード
+    S12_002_ja: str  # 運営会社
+    S12_003_ja: str  # 路線名
+    S12_004: str  # 鉄道区分
+    S12_005: str  # 事業者種別
+    S12_006: str  # 重複コード2011
+    S12_007: str  # データ有無コード2011
+    S12_008: str  # 備考2011
+    S12_009: int  # 乗降客数2011
+    S12_010: str  # 重複コード2012
+    S12_011: str  # データ有無コード2012
+    S12_012: str  # 備考2012
+    S12_013: int  # 乗降客数2012
+    S12_014: str  # 重複コード2013
+    S12_015: str  # データ有無コード2013
+    S12_016: str  # 備考2013
+    S12_017: int  # 乗降客数2013
+    S12_018: str  # 重複コード2014
+    S12_019: str  # データ有無コード2014
+    S12_020: str  # 備考2014
+    S12_021: int  # 乗降客数2014
+    S12_022: str  # 重複コード2015
+    S12_023: str  # データ有無コード2015
+    S12_024: str  # 備考2015
+    S12_025: int  # 乗降客数2015
+    S12_026: str  # 重複コード2016
+    S12_027: str  # データ有無コード2016
+    S12_028: str  # 備考2016
+    S12_029: int  # 乗降客数2016
+    S12_030: str  # 重複コード2017
+    S12_031: str  # データ有無コード2017
+    S12_032: str  # 備考2017
+    S12_033: int  # 乗降客数2017
+    S12_034: str  # 重複コード2018
+    S12_035: str  # データ有無コード2018
+    S12_036: str  # 備考2018
+    S12_037: int  # 乗降客数2018
+    S12_038: str  # 重複コード2019
+    S12_039: str  # データ有無コード2019
+    S12_040: str  # 備考2019
+    S12_041: int  # 乗降客数2019
+    S12_042: str  # 重複コード2020
+    S12_043: str  # データ有無コード2020
+    S12_044: str  # 備考2020
+    S12_045: int  # 乗降客数2020
+    S12_046: str  # 重複コード2021
+    S12_047: str  # データ有無コード2021
+    S12_048: str  # 備考2021
+    S12_049: int  # 乗降客数2021
+    S12_050: str  # 重複コード2022
+    S12_051: str  # データ有無コード2022
+    S12_052: str  # 備考2022
+    S12_053: int  # 乗降客数2022
+    S12_054: str  # 重複コード2023
+    S12_055: str  # データ有無コード2023
+    S12_056: str  # 備考2023
+    S12_057: int  # 乗降客数2023
+
+
+NumberOfPassengersPerStationResponse = FeatureCollection[NumberOfPassengersPerStationProperties]
+
+
+class DisasterRiskAreasProperties(TypedDict, total=False):
+    """One feature's `properties` from XKT016, 国土数値情報（災害危険区域）API.
+
+    See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt016/
+    """
+
+    A48_001: str  # 都道府県名
+    A48_002: str  # 市町村名
+    A48_003: str  # 代表行政コード
+    A48_004: int  # 指定主体区分
+    A48_005_ja: str  # 区域名
+    A48_006: str  # 所在地
+    A48_007: int  # 指定理由コード
+    A48_007_name_ja: str  # 指定理由
+    A48_008_ja: str  # 指定理由詳細
+    A48_009: str  # 告示年月日
+    A48_010: str  # 告示番号
+    A48_011: str  # 根拠条例
+    A48_012: float  # 面積
+    A48_013: str  # 縮尺
+    A48_014: str  # その他
+
+
+DisasterRiskAreasResponse = FeatureCollection[DisasterRiskAreasProperties]
+
+
+class LibrariesProperties(TypedDict, total=False):
+    """One feature's `properties` from XKT017, 国土数値情報（図書館）API.
+
+    See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt017/
+    """
+
+    P27_001: str  # 行政区域コード
+    P27_002: str  # 公共施設大分類
+    P27_003: str  # 公共施設小分類
+    P27_003_name_ja: str  # 公共施設小分類名
+    P27_004: str  # 文化施設分類
+    P27_004_name_ja: str  # 文化施設分類名
+    P27_005_ja: str  # 名称
+    P27_006_ja: str  # 所在地
+    P27_007: int  # 管理者コード
+    P27_008: int  # 階数
+    P27_009: int  # 建築年
+
+
+LibrariesResponse = FeatureCollection[LibrariesProperties]
+
+
+class MunicipalOfficesAndPublicMeetingFacilitiesEtcProperties(TypedDict, total=False):
+    """One feature's `properties` from XKT018, 国土数値情報（市区町村役場及び集会施設等）API.
+
+    See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt018/
+    """
+
+    P05_001: str  # 行政区域コード
+    P05_002: str  # 施設分類コード
+    P05_002_name_ja: str  # 施設分類名
+    P05_003_ja: str  # 名称
+    P05_004_ja: str  # 所在地
+
+
+MunicipalOfficesAndPublicMeetingFacilitiesEtcResponse = FeatureCollection[
+    MunicipalOfficesAndPublicMeetingFacilitiesEtcProperties
+]
+
+
+class NaturalParkAreasProperties(TypedDict, total=False):
+    """One feature's `properties` from XKT019, 国土数値情報（自然公園地域）API.
+
+    See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt019/
+    """
+
+    OBJECTID: int  # シェープID
+    PREFEC_CD: str  # 都道府県コード
+    AREA_CD: str  # 地区コード
+    CTV_NAME: str  # 市町村名
+    FIS_YEAR: str  # 年度
+    THEMA_NO: int  # 主題番号
+    LAYER_NO: int  # レイヤ番号
+    AREA_SIZE: float  # ポリゴン面積(ha)
+    IOSIDE_DIV: int  # 内外区分
+    REMARK_STR: str  # 備考
+    Shape_Leng: float  # シェープの長さ
+    Shape_Area: float  # シェープの面積
+    OBJ_NAME_ja: str  # シェープ名
+
+
+NaturalParkAreasResponse = FeatureCollection[NaturalParkAreasProperties]
+
+
+class LandslidePreventionDistrictsProperties(TypedDict, total=False):
+    """One feature's `properties` from XKT021, 国土数値情報（地すべり防止地区）API.
+
+    See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt021/
+    """
+
+    prefecture_code: str  # 都道府県コード
+    group_code: str  # 行政コード
+    city_name: str  # 市町村名
+    region_name: str  # 区域名
+    address: str  # 所在地
+    notice_date: str  # 告示年月日
+    notice_number: str  # 告示番号
+    landslide_area: str  # 指定面積（ha）
+    charge_ministry_code: int  # 所管省庁コード
+    prefecture_name: str  # 都道府県名
+    charge_ministry_name: str  # 所管省庁名
+
+
+LandslidePreventionDistrictsResponse = FeatureCollection[LandslidePreventionDistrictsProperties]
+
+
+class DistrictPlansProperties(TypedDict, total=False):
+    """One feature's `properties` from XKT023, 都市計画決定GISデータ（地区計画）API.
+
+    See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt023/
+    """
+
+    plan_name: str  # 計画名
+    plan_type_ja: str  # 計画区分名
+    kubun_id: str  # 区分コード
+    group_code: str  # 行政コード
+    decision_date: str  # 設定年月日
+    decision_type_ja: str  # 設定区分名
+    decision_maker: str  # 設定者名
+    notice_number: str  # 告示番号
+    prefecture: str  # 都道府県名
+    city_name: str  # 市町村名
+    first_decision_date: str  # 当初決定日
+    notice_number_s: str  # 告示番号S
+
+
+DistrictPlansResponse = FeatureCollection[DistrictPlansProperties]
+
+
+class HighLevelUseDistrictsProperties(TypedDict, total=False):
+    """One feature's `properties` from XKT024, 都市計画決定GISデータ（高度利用地区）API.
+
+    See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt024/
+    """
+
+    advanced_name: str  # 高度名称
+    advanced_type_ja: str  # 高度区分名
+    kubun_id: str  # 区分コード
+    group_code: str  # 行政コード
+    decision_date: str  # 設定年月日
+    decision_type_ja: str  # 設定区分名
+    decision_maker: str  # 設定者名
+    notice_number: str  # 告示番号
+    prefecture: str  # 都道府県名
+    city_name: str  # 市町村名
+    first_decision_date: str  # 当初決定日
+    notice_number_s: str  # 告示番号S
+
+
+HighLevelUseDistrictsResponse = FeatureCollection[HighLevelUseDistrictsProperties]
+
+
+class SedimentDisasterAlertAreasProperties(TypedDict, total=False):
+    """One feature's `properties` from XKT029, 国土数値情報（土砂災害警戒区域）API.
+
+    See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt029/
+    """
+
+    A33_001: int  # 現象の種類
+    A33_002: int  # 区域区分
+    A33_003: str  # 都道府県コード
+    A33_004: str  # 区域番号
+    A33_005: str  # 区域名
+    A33_006: str  # 所在地
+    A33_007: str  # 公示日
+    A33_008: int  # 特別警戒未指定フラグ
+
+
+SedimentDisasterAlertAreasResponse = FeatureCollection[SedimentDisasterAlertAreasProperties]
+
+
+class CityPlanningRoadsProperties(TypedDict, total=False):
+    """One feature's `properties` from XKT030, 都市計画決定GISデータ（都市計画道路）API.
+
+    See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt030/
+    """
+
+    planning_road_ja: str  # 都市計画道路種類名
+    kubun_id: int  # 区分コード
+    prefecture: str  # 都道府県名
+    city_code: str  # 市区町村コード
+    city_name: str  # 市区町村名
+    first_decision_date: str  # 当初決定日
+    decision_date: str  # 設定年月日
+    decision_type_ja: str  # 設定区分名
+    decision_maker: str  # 設定者名
+    notice_number_s: str  # 告示番号S
+    notice_number: str  # 告示番号
+
+
+CityPlanningRoadsResponse = FeatureCollection[CityPlanningRoadsProperties]
+
+
+class DenselyInhabitedDistrictsProperties(TypedDict, total=False):
+    """One feature's `properties` from XKT031, 国土数値情報（人口集中地区）API.
+
+    See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt031/
+    """
+
+    A16_001: str  # DIDid
+    A16_002: str  # 行政区域コード
+    A16_003: str  # 市区町村名称
+    A16_004: int  # 人口集中地区符合
+    A16_005: int  # 人口
+    A16_006: float  # 面積
+    A16_007: int  # 前回人口
+    A16_008: float  # 前回面積
+    A16_009: float  # 全域に占める人口集中地区の人口割合
+    A16_010: float  # 全域に占める人口集中地区の面積割合
+    A16_011: int  # 国勢調査年度
+    A16_012: int  # 人口（男）
+    A16_013: int  # 人口（女）
+    A16_014: int  # 世帯数（総数）
+
+
+DenselyInhabitedDistrictsResponse = FeatureCollection[DenselyInhabitedDistrictsProperties]
+
+
+class DesignatedEmergencyEvacuationSitesProperties(TypedDict, total=False):
+    """One feature's `properties` from XGT001, 国土地理院GISデータ（指定緊急避難場所）API.
+
+    See https://www.reinfolib.mlit.go.jp/help/apiManual/xgt001/
+    """
+
+    common_id: str  # 共通ID
+    prefecture_and_city: str  # 都道府県名及び市町村名
+    facility_name_ja: str  # 施設・場所名
+    address_ja: str  # 住所
+    flood_flag: bool  # 洪水
+    landslide_flag: bool  # 崖崩れ、土石流及び地滑り
+    high_tide_flag: bool  # 高潮
+    earthquake_flag: bool  # 地震
+    tsunami_flag: bool  # 津波
+    large_fire_flag: bool  # 大規模な火事
+    inland_flooding_flag: bool  # 内水氾濫
+    volcanic_phenomenon_flag: bool  # 火山現象
+    same_address_flag: bool  # 指定避難所との住所同一
+    remarks: str  # 備考
+
+
+DesignatedEmergencyEvacuationSitesResponse = FeatureCollection[DesignatedEmergencyEvacuationSitesProperties]

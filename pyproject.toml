@@ -62,7 +62,10 @@ dev = [
 [tool.ruff]
 line-length = 120
 indent-width = 4
-target-version = "py312"
+# The floor this package supports, matching `requires-python` and `[tool.ty.environment]`.
+# It used to say py312, which had ruff offer the PEP 695 rewrite of the generic types in
+# `types.py` -- syntax that does not parse on 3.11.
+target-version = "py311"
 
 [tool.ruff.lint]
 select = ["F", "E", "W", "I", "Q", "UP", "RUF", "S"]
