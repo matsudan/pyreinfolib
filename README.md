@@ -14,10 +14,6 @@
 pip install pyreinfolib
 ```
 
-### Supported Python Versions
-
-Python >= 3.11
-
 ## Usage
 
 ```python
@@ -28,9 +24,9 @@ from pyreinfolib import Client
 client = Client(api_key=os.environ["REINFOLIB_API_KEY"])
 ```
 
-引数を省略する、または `None` を渡すと、その絞り込みを行いません。`get_real_estate_prices(year=2024)` は全国が対象になります。
+引数を省略または `None` を渡すと、その絞り込みを行いません。例えば `get_real_estate_prices(year=2024)` は全国のデータが対象になります。
 
-空文字を渡した場合は `ValueError` になります。省略と同じ扱いにはしません。`city=""` を絞り込みのつもりで渡したときに、黙って全国が返ることを避けるためです。フォームや環境変数の値をそのまま渡す場合は `city=value or None` としてください。同様に、コードのリストが空（`land_type_code=[]`）の場合も `ValueError` です。絞り込んだ結果が0件になったことは、全種類を要求することとは違うためです。
+空文字を渡した場合は省略と同じ扱いでなく `ValueError` になります。フォームや環境変数の値をそのまま渡す場合は `city=value or None` としてください。またコードのリストが空（`land_type_code=[]`）の場合も `ValueError` になります。
 
 `Client` はコネクションを再利用します。タイル系APIを複数タイル分呼ぶような使い方では、TLSハンドシェイクが1回で済みます。使い終わったら `close()` するか、`with` を使ってください。
 
@@ -41,7 +37,7 @@ with Client(api_key=os.environ["REINFOLIB_API_KEY"]) as client:
 
 ### リトライ
 
-スロットリング（HTTP 429）と一時的なサーバエラー（500、502、503、504）は自動で再試行します。APIはリクエスト数の明確な上限を公開しておらず、間隔を空けて実行するよう案内しているため、429 は障害ではなく想定される応答です。
+スロットリング（HTTP 429）と一時的なサーバエラー（500、502、503、504）は自動で再試行します。APIはリクエスト数の明確な上限を公開しておらず、間隔を空けて実行するよう案内しています。429 は障害ではなく想定される応答です。
 
 待ち時間は指数的に伸びます。既定の `max_retries=3` では 0秒、2秒、4秒の順に待ち、4回目で諦めて `RateLimitError` を送出します。APIが `Retry-After` を返した場合はそちらが優先されます。
 
@@ -50,7 +46,7 @@ with Client(api_key=os.environ["REINFOLIB_API_KEY"]) as client:
 client = Client(api_key=..., max_retries=0)
 ```
 
-検索結果0件（HTTP 404）は再試行しません。`timeout` は各試行を制限するもので、再試行の全体を制限するものではありません。
+検索結果0件（HTTP 404）は再試行しません。`timeout` 引数は各試行を制限するもので、再試行の全体を制限するものではありません。
 
 ## Example
 
@@ -75,9 +71,9 @@ from pyreinfolib.enums import UseDivision
 client.get_appraisal_reports(year=2024, area="13", division=UseDivision.INDUSTRIAL_LAND)
 ```
 
-### タイル座標だけで引くAPI
+### 引数がタイル座標のみのAPI
 
-タイル座標のみを取る15本は、引数が `z`, `x`, `y` だけです。
+タイル座標のみを取る以下のAPIは、引数が `z`, `x`, `y` だけです。
 
 | メソッド | ID | データ | ズーム |
 |---|---|---|---|
@@ -103,9 +99,9 @@ from pyreinfolib import tiles
 client.get_use_districts(*tiles.containing(lon=139.7016, lat=35.6580, z=15))
 ```
 
-### 行政区域コードで絞り込めるAPI
+### 行政区域コードでフィルタ可能なAPI
 
-次の6本はタイル座標に加えて `administrative_area_code`（行政区域コード、5桁）を取ります。**任意**なので、省略すればタイル全体が返ります。
+以下のAPIはタイル座標に加えて `administrative_area_code`（行政区域コード、5桁）を取ります。**任意**なので、省略すればタイル全体が返ります。
 
 | メソッド | ID | データ | ズーム |
 |---|---|---|---|
@@ -163,7 +159,9 @@ client.get_landslide_prevention_districts(z=11, x=1819, y=806, prefecture_code="
 
 ## タイル座標
 
-公開APIの多くは場所ではなく XYZ タイル座標で引きます。緯度経度から変換するために `pyreinfolib.tiles` を用意しています。ネットワークもAPIキーも不要な純粋関数です。
+公開APIの多くは XYZ タイル座標で引きます。経度、緯度 (longitude, latitude) から変換するために `pyreinfolib.tiles` を用意しています。
+
+### 点を含むタイル取得 (containing)
 
 ```python
 from pyreinfolib import tiles
@@ -176,13 +174,11 @@ client.get_number_of_passengers_per_station(*tile)
 
 `Tile` は `z, x, y` の順なので、タイル系メソッドにそのまま展開して渡せます。
 
-受け付けるズームレベルはエンドポイントごとに違います（多くは11〜15、`get_land_market_value_publication_and_research_point` は13〜15）。範囲外を渡すと、どのエンドポイントが何を期待しているかを含む `ValueError` になります。`tiles` 側はエンドポイントを知らないので、そこでは検証しません。
+受け付けるズームレベルはエンドポイントごとに違います（多くは11〜15、`get_land_market_value_publication_and_research_point` は13〜15）。範囲外を渡すと、どのエンドポイントが何を期待しているかを含む `ValueError` になります。`tiles` 側はエンドポイントを知らないのでそこでは検証しません。
 
-引数はキーワード専用です。GeoJSON や地図系ライブラリは経度を先に置きますが、日本の利用者は緯度経度の順で考えるため、順序を記憶に頼らせない形にしています。
+引数は名前を付けて渡します（位置引数では渡せません）。緯度と経度はどちらも `float` なので、順序を取り違えても型では気づけないためです。
 
-### 範囲を覆う
-
-1点1タイルでは足りない場合が普通です。ズーム15ではタイル1枚が約1km四方なので、区一つで30枚になります。
+### 指定範囲を覆うタイル取得 (covering / count_covering)
 
 ```python
 box = {"west": 139.665, "south": 35.640, "east": 139.724, "north": 35.679}
@@ -193,9 +189,12 @@ for tile in tiles.covering(**box, z=15):
     client.get_real_estate_prices_point(*tile, period_from=20241, period_to=20242)
 ```
 
+範囲を指定して、それを覆うタイルを取得したいケースです。
+例えばズーム15ではタイル1枚が約1km四方で、渋谷区の範囲を取得したい場合30枚ほどになります。
+
 `covering()` はイテレータを返します。1タイルが1リクエストであり、APIは間隔を空けた呼び出しを求めているため、呼び出し側がペースを制御したり途中で止められる形にしています。
 
-タイル数は急激に増えます。着手前に `count_covering()` で確認してください。
+タイル数はズームと範囲で桁が変わります。着手前に `count_covering()` で確認してください。引数は `covering()` と同じです。
 
 | 範囲 | z=11 | z=13 | z=15 |
 |---|---|---|---|
@@ -203,7 +202,7 @@ for tile in tiles.covering(**box, z=15):
 | 東京23区 | 9 | 90 | 1155 |
 | 東京都（本土） | 28 | 288 | 4186 |
 
-### タイルの範囲を得る
+### タイル範囲取得 (bounds)
 
 ```python
 tiles.bounds(tile)
@@ -226,9 +225,9 @@ ReinfolibError
     └── InvalidResponseError レスポンスがJSONではなかった
 ```
 
-### 検索結果が0件のとき
+### APIのレスポンス結果が0件の場合
 
-タイル座標を取らない3つのAPI（`get_real_estate_prices`、`get_municipalities`、`get_appraisal_reports`）は、条件に合致するデータが無い場合に空の結果ではなく **HTTP 404** を返します（[API操作説明](https://www.reinfolib.mlit.go.jp/help/apiManual/)の3章 Q.8）。このライブラリではこれを `NoResultsError` として送出します。
+タイル座標を取らないAPI（`get_real_estate_prices`、`get_municipalities`、`get_appraisal_reports`）は、条件に合致するデータが無い場合に空の結果ではなく **HTTP 404** を返します（[API操作説明](https://www.reinfolib.mlit.go.jp/help/apiManual/)の3章 Q.8）。このライブラリではこれを `NoResultsError` として送出します。
 
 ```python
 from pyreinfolib import Client, NoResultsError
@@ -242,7 +241,7 @@ except NoResultsError:
 
 タイル座標を取るAPIは0件でも200と空のフィーチャ一覧を返すため、`NoResultsError` は発生しません。
 
-### 失敗の詳細を見る
+### APIError の内容を見る
 
 `APIError` とそのサブクラスは、APIが返した本文を保持しています。
 
@@ -262,13 +261,12 @@ except APIError as e:
 `price_classification`、`division`、`land_type_code`、`use_category_code` には `pyreinfolib.enums` の enum メンバーを渡してください。`StrEnum` なので実行時は文字列でも動きますが、型チェックでは拒否されます。単一のコードはリストに包む必要はありません。
 
 `price_classification` は API 上どのエンドポイントでも `priceClassification` という同じ名前ですが、コード体系は2つに分かれています。
+以下のように別の型にしてあるので取り違えは型チェックで検出されます。誤ったコードを送っても API はエラーではなく絞り込まれた結果や空の結果を返すため、実行時には気づきにくい種類の間違いです。
 
 | enum | 対象 | コード |
 |---|---|---|
 | `PriceClassification` | 不動産価格（XIT001、XPT001） | `01` 不動産取引価格情報 / `02` 成約価格情報 |
 | `LandPriceClassification` | 地価公示・地価調査（XPT002） | `0` 地価公示 = `LAND_MARKET_VALUE_PUBLICATION` / `1` 都道府県地価調査 = `PREFECTURAL_LAND_MARKET_VALUE_RESEARCH` |
-
-別の型にしてあるので、取り違えは型チェックで検出されます。誤ったコードを送った場合、API はエラーではなく絞り込まれた結果や空の結果を返すため、実行時には気づきにくい種類の間違いです。
 
 ## Contributing
 
