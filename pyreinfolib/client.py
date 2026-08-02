@@ -14,6 +14,7 @@ from pyreinfolib.types import (
     CityPlanningRoadsResponse,
     DenselyInhabitedDistrictsResponse,
     DesignatedEmergencyEvacuationSitesResponse,
+    DisasterHistoryResponse,
     DisasterRiskAreasResponse,
     DistrictPlansResponse,
     ElementarySchoolDistrictsResponse,
@@ -28,6 +29,7 @@ from pyreinfolib.types import (
     LandslidePreventionDistrictsResponse,
     LargeScaleDevelopedEmbankmentsResponse,
     LibrariesResponse,
+    LiquefactionTendencyBasedOnTopographicalClassificationResponse,
     LocationNormalizationPlansResponse,
     MedicalInstitutionsResponse,
     MunicipalitiesResponse,
@@ -982,6 +984,24 @@ class Client:
         """
         return self._get_tile("XKT028", z, x, y, zoom_levels=range(14, 16))
 
+    def get_liquefaction_tendency_based_on_topographical_classification(
+        self, z: int, x: int, y: int
+    ) -> LiquefactionTendencyBasedOnTopographicalClassificationResponse:
+        """Get liquefaction tendency based on topographical classification (地形区分に基づく液状化の発生傾向図).
+
+        How liable the ground is to liquefy, graded on six levels over a 250m grid, by reading
+        the liquefaction observed in past earthquakes against the landform each mesh sits on.
+        It is not a survey of the ground beneath a particular site.
+        See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt025/ for details.
+        :param z: Zoom level (scale). 11 (city) ~ 15 (detail)
+        :param x: x value of tile coordinates.
+        :param y: y value of tile coordinates.
+        :return: Liquefaction tendency based on topographical classification.
+          (Response format: GeoJson)
+        :raises ValueError: If `z` is not between 11 and 15.
+        """
+        return self._get_tile("XKT025", z, x, y)
+
     def get_sediment_disaster_alert_areas(self, z: int, x: int, y: int) -> SedimentDisasterAlertAreasResponse:
         """Get sediment disaster alert areas (土砂災害警戒区域).
 
@@ -1063,3 +1083,41 @@ class Client:
         :raises ValueError: If `z` is not between 11 and 15.
         """
         return self._get_tile("XGT001", z, x, y)
+
+    def get_disaster_history(
+        self,
+        z: int,
+        x: int,
+        y: int,
+        disastertype_code: Sequence[str] | str | None = None,
+    ) -> DisasterHistoryResponse:
+        """Get disaster history (災害履歴).
+
+        Where past disasters are recorded as having struck, compiled by the national land
+        survey from historical documents. A feature carries the date and the document it came
+        from, so what is here reflects what was recorded rather than everything that happened.
+
+        Singular because 災害履歴 names the record rather than a countable area.
+        See https://www.reinfolib.mlit.go.jp/help/apiManual/xst001/ for details.
+        :param z: Zoom level (scale). 9 (prefecture) ~ 15 (detail)
+        :param x: x value of tile coordinates.
+        :param y: y value of tile coordinates.
+        :param disastertype_code: One disaster classification code, or a sequence of them.
+          Format: NN. Spelled as the API spells it, with no underscore after `disaster`.
+          `11` 浸水域等, `12` 堤防決壊箇所等, `13` 高潮浸水域等, `14` 高潮破堤箇所等,
+          `21` がけ崩れ等, `22` 地すべり等, `23` 河道閉塞箇所等, `24` 土石流等, `33` 液状化,
+          `34` 地震土砂災害, `37` 津波高, `38` 津波浸水域.
+          Not an enum: four of the twelve have no published English name.
+          If not specified, every classification.
+        :return: Disaster history. (Response format: GeoJson)
+        :raises ValueError: If `z` is not between 9 and 15, or `disastertype_code` is empty.
+        """
+        return self._get_tile(
+            "XST001",
+            z,
+            x,
+            y,
+            {"disastertype_code": _join_codes(disastertype_code)},
+            # As wide as XKT019 and XKT031.
+            zoom_levels=range(9, 16),
+        )

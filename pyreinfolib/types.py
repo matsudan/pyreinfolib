@@ -969,6 +969,27 @@ class ExpectedTsunamiInundationProperties(TypedDict, total=False):
 ExpectedTsunamiInundationResponse = FeatureCollection[ExpectedTsunamiInundationProperties]
 
 
+class LiquefactionTendencyBasedOnTopographicalClassificationProperties(TypedDict, total=False):
+    """One feature's `properties` from XKT025, 国土交通省都市局（地形区分に基づく液状化の発生傾向図）API.
+
+    The classification is finer than the dataset name suggests: `topographic_classification_code`
+    is one of 28 微地形区分, and `liquefaction_tendency_level` grades the tendency on six levels.
+
+    See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt025/
+    """
+
+    mesh_code: str  # メッシュコード
+    topographic_classification_code: int  # 微地形区分（28区分）
+    topographic_classification_name_ja: str  # 微地形区分の名称
+    liquefaction_tendency_level: int  # 液状化発生傾向の強弱(6段階区分)
+    note: str  # 説明
+
+
+LiquefactionTendencyBasedOnTopographicalClassificationResponse = FeatureCollection[
+    LiquefactionTendencyBasedOnTopographicalClassificationProperties
+]
+
+
 class SedimentDisasterAlertAreasProperties(TypedDict, total=False):
     """One feature's `properties` from XKT029, 国土数値情報（土砂災害警戒区域）API.
 
@@ -1033,6 +1054,24 @@ class DenselyInhabitedDistrictsProperties(TypedDict, total=False):
 
 
 DenselyInhabitedDistrictsResponse = FeatureCollection[DenselyInhabitedDistrictsProperties]
+
+
+class DisasterHistoryProperties(TypedDict, total=False):
+    """One feature's `properties` from XST001, 国土調査（災害履歴）API.
+
+    `disastertype_code` is the API's spelling, without an underscore between `disaster` and
+    `type`, and it is both the filter and an output field.
+
+    See https://www.reinfolib.mlit.go.jp/help/apiManual/xst001/
+    """
+
+    disastertype_code: str  # 災害分類コード
+    disaster_name_ja: str  # 分類の呼称（災害種別等）
+    disaster_date: str  # 西暦年月日
+    disaster_source: str  # 資料名（発行者）
+
+
+DisasterHistoryResponse = FeatureCollection[DisasterHistoryProperties]
 
 
 class DesignatedEmergencyEvacuationSitesProperties(TypedDict, total=False):

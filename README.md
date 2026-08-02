@@ -89,6 +89,7 @@ client.get_appraisal_reports(year=2024, area="13", division=UseDivision.INDUSTRI
 | `get_municipal_offices_and_public_meeting_facilities_etc` | XKT018 | 市区町村役場及び集会施設等 | 13〜15 |
 | `get_district_plans` | XKT023 | 地区計画 | 11〜15 |
 | `get_large_scale_developed_embankments` | XKT020 | 大規模盛土造成地マップ | 11〜15 |
+| `get_liquefaction_tendency_based_on_topographical_classification` | XKT025 | 地形区分に基づく液状化の発生傾向図 | 11〜15 |
 | `get_high_level_use_districts` | XKT024 | 高度利用地区 | 11〜15 |
 | `get_expected_flood_inundation_areas_at_maximum_scale` | XKT026 | 洪水浸水想定区域（想定最大規模） | 14〜15 |
 | `get_expected_storm_surge_inundation_areas` | XKT027 | 高潮浸水想定区域 | 13〜15 |
@@ -166,6 +167,18 @@ client.get_steep_slope_failure_hazard_areas(z=11, x=1819, y=806, administrative_
 ```
 
 **この2本の都道府県コードは先頭の0を付けます。** XKT019 とは逆で、静岡県は `"22"`、栃木県は `"09"` です。引数名も型も同じなので、区別はエンドポイントだけです。マニュアルの記載がそうなっているため、そのまま従っています。
+
+### 災害履歴
+
+`get_disaster_history`（XST001、ズーム9〜15）は災害分類コードで絞り込めます。任意です。
+
+```python
+client.get_disaster_history(z=9, x=227, y=100, disastertype_code=["11", "22"])
+```
+
+指定できるのは 11 浸水域等、12 堤防決壊箇所等、13 高潮浸水域等、14 高潮破堤箇所等、21 がけ崩れ等、22 地すべり等、23 河道閉塞箇所等、24 土石流等、33 液状化、34 地震土砂災害、37 津波高、38 津波浸水域 です。enum ではありません。12件のうち4件（河道閉塞、津波高、浸水域、地震土砂災害）に公表された英訳がないためです（[CONTRIBUTING.md](CONTRIBUTING.md#enum-にするか-str-にするか)）。
+
+**引数名は `disastertype_code` です。** `disaster` の後にアンダースコアが入りません。APIのパラメータ名がそうなっているためです。
 
 ## タイル座標
 
