@@ -489,10 +489,6 @@ class Client:
         serviceable as its population falls. The response carries the plan area, and the
         residence and urban function areas it guides into.
 
-        `location normalization plan` rests on secondary sources. The Act is absent from the
-        Japanese Law Translation database, and 適正化 has no sourced translation to compose
-        from, so this is the term the literature uses and attributes to MLIT. CONTRIBUTING.md
-        records the evidence and what was searched without finding the primary page.
         See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt003/ for details.
         :param z: Zoom level (scale). 11 (city) ~ 15 (detail)
         :param x: x value of tile coordinates.
@@ -666,9 +662,9 @@ class Client:
     ) -> FirePreventionDistrictsAndQuasiFirePreventionDistrictsResponse:
         """Get fire prevention districts and quasi-fire prevention districts (防火・準防火地域).
 
-        `districts` twice, although the Japanese writes 地域 once. That is how the Building
-        Standards Act translation renders the pair, and it keeps `Fire Prevention District`
-        intact as the term the Act defines.
+        Districts a city plan designates, within which the Building Standards Act restricts
+        how a building may be constructed so that fire does not spread. A fire prevention
+        district is the stricter of the two.
         See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt014/ for details.
         :param z: Zoom level (scale). 11 (city) ~ 15 (detail)
         :param x: x value of tile coordinates.
@@ -824,10 +820,9 @@ class Client:
     ) -> LandslidePreventionDistrictsResponse:
         """Get landslide prevention districts (地すべり防止地区).
 
-        `districts` because the API dataset is named 地すべり防止**地区**. The designation it
-        carries is the 地すべり防止**区域** of Article 3 of the Landslide Prevention Act, which
-        the City Planning Act translation renders `landslide prevention area`. The method name
-        follows the API so that the manual's dataset name leads to it.
+        An area where the Landslide Prevention Act restricts work that could induce a
+        landslide. The Act calls it a 地すべり防止区域, `landslide prevention area`, while this
+        method follows the API's dataset name, 地すべり防止地区.
 
         Note that `prefecture_code` here keeps its leading zero -- `09`, not the `9` that
         XKT019 asks for. The two endpoints document the same code table differently.
@@ -919,8 +914,7 @@ class Client:
         """Get expected tsunami inundation (津波浸水想定).
 
         The inundation a prefecture has set as expected from a tsunami, under the Act on
-        Regional Development for Tsunami Disaster Prevention. Singular because the Japanese
-        names the 想定 itself rather than a designated area, although the response carries one
+        Regional Development for Tsunami Disaster Prevention. The response carries one
         feature per depth band.
         See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt028/ for details.
         :param z: Zoom level (scale). 14 (block) ~ 15 (detail)
@@ -935,12 +929,9 @@ class Client:
         """Get sediment disaster alert areas (土砂災害警戒区域).
 
         An area where a sediment disaster could harm residents, designated by a prefecture so
-        that warnings and evacuation can be organised for it.
-
-        `sediment disaster alert area` comes from the governing act's own English title, the
-        Act for Promotion of Measures to Prevent Sediment Disasters in Sediment Disaster Alert
-        Areas. That title is quoted in the City Planning Act translation, which also gives the
-        stricter designation, `sediment disaster special alert area`.
+        that warnings and evacuation can be organised for it. The stricter 土砂災害特別警戒区域,
+        `sediment disaster special alert area`, is designated within one; a feature's 区域区分
+        says which it is.
         See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt029/ for details.
         :param z: Zoom level (scale). 11 (city) ~ 15 (detail)
         :param x: x value of tile coordinates.
@@ -953,12 +944,9 @@ class Client:
     def get_city_planning_roads(self, z: int, x: int, y: int) -> CityPlanningRoadsResponse:
         """Get city planning roads (都市計画道路).
 
-        `city planning road` is composed rather than quoted. The City Planning Act does not
-        define 都市計画道路; it is the common name for a road determined as a city planning
-        facility, which the Act's translation renders as "roads that are city planning
-        facilities". Both halves come from that translation -- 都市計画施設 is `city planning
-        facility` and 都市計画事業 is `city planning project`, so `city planning` plus the noun
-        is the Act's own pattern, and 道路 is `roads` in the list of urban facilities.
+        Roads a city plan has determined as city planning facilities, with their route and
+        width fixed in advance. Building within one is restricted whether or not the road has
+        been constructed yet, so a planned road still bears on a parcel it crosses.
         See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt030/ for details.
         :param z: Zoom level (scale). 11 (city) ~ 15 (detail)
         :param x: x value of tile coordinates.
