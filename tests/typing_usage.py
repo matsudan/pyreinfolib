@@ -79,6 +79,8 @@ def tile_endpoints_from_a_point(client: Client) -> None:
     client.get_expected_tsunami_inundation(*tile)
     client.get_steep_slope_failure_hazard_areas(*tile)
     client.get_large_scale_developed_embankments(*tile)
+    client.get_liquefaction_tendency_based_on_topographical_classification(*tile)
+    client.get_disaster_history(*tile)
     client.get_location_normalization_plans(*tile)
 
 
@@ -173,6 +175,10 @@ def municipality_code_filters(client: Client) -> None:
     client.get_steep_slope_failure_hazard_areas(
         z=11, x=1819, y=806, prefecture_code=["09", "14"], administrative_area_code="22100"
     )
+
+    # XST001 spells its filter without an underscore after `disaster`, as the API does.
+    client.get_disaster_history(z=9, x=227, y=100, disastertype_code="11")
+    client.get_disaster_history(z=9, x=227, y=100, disastertype_code=["11", "22", "37"])
 
 
 def error_handling(client: Client) -> None:

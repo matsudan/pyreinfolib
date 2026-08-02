@@ -44,6 +44,7 @@ TILE_ENDPOINTS = [
     ("get_densely_inhabited_districts", "XKT031", {}, range(9, 16)),
     ("get_landslide_prevention_districts", "XKT021", {}, range(11, 16)),
     ("get_steep_slope_failure_hazard_areas", "XKT022", {}, range(11, 16)),
+    ("get_disaster_history", "XST001", {}, range(9, 16)),
 ]
 TILE_ENDPOINT_IDS = [
     "XPT001",
@@ -58,6 +59,7 @@ TILE_ENDPOINT_IDS = [
     "XKT031",
     "XKT021",
     "XKT022",
+    "XST001",
 ]
 
 # Tile endpoints whose only further parameters are optional filters, with the API's spelling
@@ -878,6 +880,11 @@ class TestBlankArguments:
                 {"z": 11, "x": 1819, "y": 806, "prefecture_code": []},
                 "prefectureCode",
             ),
+            (
+                "get_disaster_history",
+                {"z": 9, "x": 227, "y": 100, "disastertype_code": []},
+                "disastertype_code",
+            ),
         ],
         ids=[
             "land_type_code",
@@ -892,6 +899,7 @@ class TestBlankArguments:
             "prefecture_code that keeps its padding",
             "administrative_area_code alongside a prefecture filter",
             "prefecture_code on the other endpoint that keeps its padding",
+            "disastertype_code",
         ],
     )
     def test_an_empty_sequence_of_codes_is_refused(self, mock_api, client, method_name, args, expected):
@@ -946,6 +954,7 @@ TILE_ONLY_ENDPOINTS = [
     ("get_sediment_disaster_alert_areas", "XKT029", range(11, 16)),
     ("get_city_planning_roads", "XKT030", range(11, 16)),
     ("get_designated_emergency_evacuation_sites", "XGT001", range(11, 16)),
+    ("get_liquefaction_tendency_based_on_topographical_classification", "XKT025", range(11, 16)),
 ]
 TILE_ONLY_ENDPOINT_IDS = [endpoint for _, endpoint, _ in TILE_ONLY_ENDPOINTS]
 
