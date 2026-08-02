@@ -27,7 +27,7 @@ def expected_response_type_name(method: str) -> str:
 
 def test_every_endpoint_method_is_covered() -> None:
     """A guard on the guard: if this count drops, the parametrised test below stopped running."""
-    assert len(ENDPOINT_METHODS) == 28
+    assert len(ENDPOINT_METHODS) == 31
 
 
 @pytest.mark.parametrize("method", ENDPOINT_METHODS)
