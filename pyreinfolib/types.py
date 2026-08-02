@@ -831,6 +831,23 @@ class LandslidePreventionDistrictsProperties(TypedDict, total=False):
 LandslidePreventionDistrictsResponse = FeatureCollection[LandslidePreventionDistrictsProperties]
 
 
+class LargeScaleDevelopedEmbankmentsProperties(TypedDict, total=False):
+    """One feature's `properties` from XKT020, 国土数値情報（大規模盛土造成地マップ）API.
+
+    See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt020/
+    """
+
+    embankment_classification: str  # 盛土区分
+    prefecture_code: str  # 都道府県コード
+    prefecture_name: str  # 都道府県名
+    city_code: str  # 市区町村コード
+    city_name: str  # 市区町村名
+    embankment_number: str  # 盛土番号
+
+
+LargeScaleDevelopedEmbankmentsResponse = FeatureCollection[LargeScaleDevelopedEmbankmentsProperties]
+
+
 class SteepSlopeFailureHazardAreasProperties(TypedDict, total=False):
     """One feature's `properties` from XKT022, 国土数値情報（急傾斜地崩壊危険区域）API.
 

@@ -26,6 +26,7 @@ from pyreinfolib.types import (
     JuniorHighSchoolDistrictsResponse,
     LandMarketValuePublicationAndResearchPointResponse,
     LandslidePreventionDistrictsResponse,
+    LargeScaleDevelopedEmbankmentsResponse,
     LibrariesResponse,
     LocationNormalizationPlansResponse,
     MedicalInstitutionsResponse,
@@ -851,6 +852,21 @@ class Client:
                 "administrativeAreaCode": _join_codes(administrative_area_code),
             },
         )
+
+    def get_large_scale_developed_embankments(self, z: int, x: int, y: int) -> LargeScaleDevelopedEmbankmentsResponse:
+        """Get large-scale developed embankments (大規模盛土造成地).
+
+        Land built up by filling on a scale that could slide in an earthquake, which
+        municipalities survey and publish. A feature's 盛土区分 says whether it is a filled
+        valley or a fill added to a slope.
+        See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt020/ for details.
+        :param z: Zoom level (scale). 11 (city) ~ 15 (detail)
+        :param x: x value of tile coordinates.
+        :param y: y value of tile coordinates.
+        :return: Large-scale developed embankments. (Response format: GeoJson)
+        :raises ValueError: If `z` is not between 11 and 15.
+        """
+        return self._get_tile("XKT020", z, x, y)
 
     def get_steep_slope_failure_hazard_areas(
         self,

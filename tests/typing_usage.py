@@ -78,6 +78,7 @@ def tile_endpoints_from_a_point(client: Client) -> None:
     client.get_expected_storm_surge_inundation_areas(*tile)
     client.get_expected_tsunami_inundation(*tile)
     client.get_steep_slope_failure_hazard_areas(*tile)
+    client.get_large_scale_developed_embankments(*tile)
     client.get_location_normalization_plans(*tile)
 
 
