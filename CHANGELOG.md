@@ -5,7 +5,7 @@
 
 ### ⚠ BREAKING CHANGES
 
-* rename the two methods whose names had no source ([#69](https://github.com/matsudan/pyreinfolib/issues/69))
+* `get_municipal_offices_and_public_meeting_facilities_etc` is now `get_municipal_offices_and_meeting_facilities_etc`, and `get_future_population_estimates_by_250m_mesh` is now `get_population_projections_in_250m_grid_squares`. Their response and properties types are renamed to match. No aliases are kept. ([#69](https://github.com/matsudan/pyreinfolib/issues/69))
 * every `Client` method now returns a `TypedDict` from `pyreinfolib.types` rather than `dict[str, Any]`. A `TypedDict` is not assignable to `dict[str, Any]`, so a caller who annotated a return value fails type checking. Drop the annotation, or use the matching `...Response` type. Runtime behaviour is unchanged.
 
 ### Features
