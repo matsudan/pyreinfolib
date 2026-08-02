@@ -77,6 +77,7 @@ def tile_endpoints_from_a_point(client: Client) -> None:
     client.get_expected_flood_inundation_areas_at_maximum_scale(*tile)
     client.get_expected_storm_surge_inundation_areas(*tile)
     client.get_expected_tsunami_inundation(*tile)
+    client.get_steep_slope_failure_hazard_areas(*tile)
     client.get_location_normalization_plans(*tile)
 
 
@@ -166,6 +167,9 @@ def municipality_code_filters(client: Client) -> None:
     # so nothing here distinguishes the two but the endpoint.
     client.get_landslide_prevention_districts(z=11, x=1819, y=806, prefecture_code="09")
     client.get_landslide_prevention_districts(
+        z=11, x=1819, y=806, prefecture_code=["09", "14"], administrative_area_code="22100"
+    )
+    client.get_steep_slope_failure_hazard_areas(
         z=11, x=1819, y=806, prefecture_code=["09", "14"], administrative_area_code="22100"
     )
 

@@ -38,6 +38,7 @@ from pyreinfolib.types import (
     RealEstatePricesResponse,
     SchoolsResponse,
     SedimentDisasterAlertAreasResponse,
+    SteepSlopeFailureHazardAreasResponse,
     UseDistrictsResponse,
     WelfareFacilitiesResponse,
 )
@@ -842,6 +843,46 @@ class Client:
         """
         return self._get_tile(
             "XKT021",
+            z,
+            x,
+            y,
+            {
+                "prefectureCode": _join_codes(prefecture_code),
+                "administrativeAreaCode": _join_codes(administrative_area_code),
+            },
+        )
+
+    def get_steep_slope_failure_hazard_areas(
+        self,
+        z: int,
+        x: int,
+        y: int,
+        prefecture_code: Sequence[str] | str | None = None,
+        administrative_area_code: Sequence[str] | str | None = None,
+    ) -> SteepSlopeFailureHazardAreasResponse:
+        """Get steep slope failure hazard areas (急傾斜地崩壊危険区域).
+
+        An area a prefecture has designated around a steep slope that could collapse, within
+        which work liable to induce a collapse is restricted.
+
+        Note that `prefecture_code` here keeps its leading zero -- `09`, not the `9` that
+        XKT019 asks for.
+        See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt022/ for details.
+        :param z: Zoom level (scale). 11 (city) ~ 15 (detail)
+        :param x: x value of tile coordinates.
+        :param y: y value of tile coordinates.
+        :param prefecture_code: One prefecture code, or a sequence of them. Format: NN, so
+          `09` rather than `9`. See https://nlftp.mlit.go.jp/ksj/gml/codelist/PrefCd.html
+          If not specified, the whole tile.
+        :param administrative_area_code: One municipality code, or a sequence of them.
+          Format: NNNNN. The same code table the price endpoints spell `city`.
+          See https://nlftp.mlit.go.jp/ksj/gml/codelist/AdminiBoundary_CD.xlsx
+          If not specified, the whole tile.
+        :return: Steep slope failure hazard areas. (Response format: GeoJson)
+        :raises ValueError: If `z` is not between 11 and 15, or a code argument is empty.
+        """
+        return self._get_tile(
+            "XKT022",
             z,
             x,
             y,
