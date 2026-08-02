@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.7.0](https://github.com/matsudan/pyreinfolib/compare/v0.6.0...v0.7.0) (2026-08-02)
+
+
+### ⚠ BREAKING CHANGES
+
+* rename the two methods whose names had no source ([#69](https://github.com/matsudan/pyreinfolib/issues/69))
+* every `Client` method now returns a `TypedDict` from `pyreinfolib.types` rather than `dict[str, Any]`. A `TypedDict` is not assignable to `dict[str, Any]`, so a caller who annotated a return value fails type checking. Drop the annotation, or use the matching `...Response` type. Runtime behaviour is unchanged.
+
+### Features
+
+* add the flood, storm surge and tsunami inundation endpoints ([#64](https://github.com/matsudan/pyreinfolib/issues/64)) ([30f0976](https://github.com/matsudan/pyreinfolib/commit/30f097691797d60954c1d0c57805ff91cab28fd3))
+* add the large-scale developed embankment endpoint ([#67](https://github.com/matsudan/pyreinfolib/issues/67)) ([4cffec9](https://github.com/matsudan/pyreinfolib/commit/4cffec9486a4af3f80f39b4984934c74789b1210))
+* add the liquefaction tendency and disaster history endpoints ([#68](https://github.com/matsudan/pyreinfolib/issues/68)) ([c969d9c](https://github.com/matsudan/pyreinfolib/commit/c969d9c64dc6d405a629034f07a03fc883da1063))
+* add the steep slope failure hazard area endpoint ([#66](https://github.com/matsudan/pyreinfolib/issues/66)) ([b0584e7](https://github.com/matsudan/pyreinfolib/commit/b0584e751007aa8c1962509b437b07d517fb46c1))
+* rename the two methods whose names had no source ([#69](https://github.com/matsudan/pyreinfolib/issues/69)) ([6fc2f2d](https://github.com/matsudan/pyreinfolib/commit/6fc2f2d8bed934c2286a893d19b7551ad96d84cd))
+* type the response bodies ([#63](https://github.com/matsudan/pyreinfolib/issues/63)) ([3922c42](https://github.com/matsudan/pyreinfolib/commit/3922c427ac586e0a8abaae905c51410320d1c57f))
+
+
+### Documentation
+
+* describe the data in docstrings, not how the name was derived ([#65](https://github.com/matsudan/pyreinfolib/issues/65)) ([2c5f737](https://github.com/matsudan/pyreinfolib/commit/2c5f737f44b775cf1c90093774da7c10e9e201f2))
+* reword the section headings and shorten the prose ([#61](https://github.com/matsudan/pyreinfolib/issues/61)) ([55afa91](https://github.com/matsudan/pyreinfolib/commit/55afa910538ee031c83d944948c0ad9133a77ff3))
+
 ## [0.6.0](https://github.com/matsudan/pyreinfolib/compare/v0.5.0...v0.6.0) (2026-08-01)
 
 
