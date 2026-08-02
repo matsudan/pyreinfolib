@@ -88,6 +88,7 @@ client.get_appraisal_reports(year=2024, area="13", division=UseDivision.INDUSTRI
 | `get_number_of_passengers_per_station` | XKT015 | 駅別乗降客数 | 11〜15 |
 | `get_municipal_offices_and_public_meeting_facilities_etc` | XKT018 | 市区町村役場及び集会施設等 | 13〜15 |
 | `get_district_plans` | XKT023 | 地区計画 | 11〜15 |
+| `get_large_scale_developed_embankments` | XKT020 | 大規模盛土造成地マップ | 11〜15 |
 | `get_high_level_use_districts` | XKT024 | 高度利用地区 | 11〜15 |
 | `get_expected_flood_inundation_areas_at_maximum_scale` | XKT026 | 洪水浸水想定区域（想定最大規模） | 14〜15 |
 | `get_expected_storm_surge_inundation_areas` | XKT027 | 高潮浸水想定区域 | 13〜15 |

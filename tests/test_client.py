@@ -938,6 +938,7 @@ TILE_ONLY_ENDPOINTS = [
     ("get_number_of_passengers_per_station", "XKT015", range(11, 16)),
     ("get_municipal_offices_and_public_meeting_facilities_etc", "XKT018", range(13, 16)),
     ("get_district_plans", "XKT023", range(11, 16)),
+    ("get_large_scale_developed_embankments", "XKT020", range(11, 16)),
     ("get_high_level_use_districts", "XKT024", range(11, 16)),
     ("get_expected_flood_inundation_areas_at_maximum_scale", "XKT026", range(14, 16)),
     ("get_expected_storm_surge_inundation_areas", "XKT027", range(13, 16)),
