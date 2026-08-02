@@ -831,6 +831,30 @@ class LandslidePreventionDistrictsProperties(TypedDict, total=False):
 LandslidePreventionDistrictsResponse = FeatureCollection[LandslidePreventionDistrictsProperties]
 
 
+class SteepSlopeFailureHazardAreasProperties(TypedDict, total=False):
+    """One feature's `properties` from XKT022, 国土数値情報（急傾斜地崩壊危険区域）API.
+
+    Close to XKT021 but not the same keys: the notice fields are `public_notice_*` here and
+    `notice_*` there, and this endpoint carries no 所管省庁. `landslide_area` is the API's name
+    for 指定面積 on both.
+
+    See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt022/
+    """
+
+    prefecture_code: str  # 都道府県コード
+    group_code: str  # 行政コード
+    city_name: str  # 市町村名
+    region_name: str  # 区域名
+    address: str  # 所在地
+    public_notice_date: str  # 公示年月日
+    public_notice_number: str  # 公示番号
+    landslide_area: str  # 指定面積（ha）
+    prefecture_name: str  # 都道府県名
+
+
+SteepSlopeFailureHazardAreasResponse = FeatureCollection[SteepSlopeFailureHazardAreasProperties]
+
+
 class DistrictPlansProperties(TypedDict, total=False):
     """One feature's `properties` from XKT023, 都市計画決定GISデータ（地区計画）API.
 

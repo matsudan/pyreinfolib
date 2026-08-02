@@ -327,6 +327,14 @@ XKT021 のデータセット名は 地すべり防止**地区** ですが、実�
 | 地すべり防止区域 | landslide prevention area | 都市計画法33条1項8号（[laws/view/3841](https://www.japaneselawtranslation.go.jp/ja/laws/view/3841/je)） |
 | 土砂災害警戒区域 | sediment disaster alert area | 土砂災害防止法の英語題名。都市計画法33条1項8号で引用 |
 | 土砂災害特別警戒区域 | sediment disaster special alert area | 都市計画法33条1項8号 |
+| 急傾斜地崩壊危険区域 | steep slope failure hazard area | 絶滅のおそれのある野生動植物の種の保存に関する法律施行規則5条1項・25条1項・50条2項、鳥獣保護管理法施行規則38条1項 |
+| 液状化 | liquefaction | 津波対策の推進に関する法律10条1項、住宅の品質確保の促進等に関する法律施行規則1条1項、東日本大震災復興特別区域法46条2項 |
+| 盛土 | embankment | 環境影響評価法施行令 別表、航空法施行規則77条1項 |
+| 砂防法 | Erosion Control Act | 自然環境保全法施行規則19条1項 |
+| 河川法 | River Act | 同条 |
+| 海岸保全区域 | coastal preservation zone | 同条 |
+
+**急傾斜地崩壊危険区域には公定訳が2つあります。** `steep slope failure hazard area` を採ります。2つの省令の4条文で使われていて、もう一方の `steep slope collapse risk area`（自然環境保全法施行規則19条1項）は1条文だけです。[国土交通省の土砂災害の技術資料](https://www.mlit.go.jp/sogoseisaku/inter/keizai/gijyutu/pdf/sediment_e_03.pdf)も `Slope Failure Hazard Areas` を使っています。
 | 立地適正化計画 | location normalization plan | 二次資料のみ。下記の通り |
 | 浸水 | inundation | 津波対策の推進に関する法律6条・8条・10条・16条（[laws/view/4648](https://www.japaneselawtranslation.go.jp/ja/laws/view/4648/je)） |
 | 浸水すると想定される範囲 | the expected ... inundation zone | 同法8条2項 |
@@ -394,14 +402,11 @@ MLIT 用語集は `Land （Market） Value` と括弧付きで記載していま
 
 根拠法・典拠候補まで特定済みです。確定したらこの表から上の表へ移してください。
 
-| 用語 | 典拠を探す先 | 用途 |
+| 用語 | 典拠を探す先 | 未確定の部分 |
 |---|---|---|
-| 大規模盛土造成地マップ | 国土交通省 | XKT020 |
-| 急傾斜地崩壊危険区域 | 急傾斜地法（法令訳DBに収録なし。翻訳済み法令からの引用も見つからない） | XKT022 |
-| 地形区分に基づく液状化の発生傾向図 | 国土交通省都市局 | XKT025 |
-
-
-| 災害履歴 | 国土調査（土地履歴調査） | XST001 |
+| 大規模盛土造成地マップ（XKT020） | 国土交通省 | 造成地。盛土 = embankment は確定済み |
+| 地形区分に基づく液状化の発生傾向図（XKT025） | 国土交通省都市局 | 地形区分、発生傾向図。液状化 = liquefaction は確定済み |
+| 災害履歴（XST001） | 国土調査（土地履歴調査） | 全部。文脈検索で 災害履歴 も 土地履歴 も0件 |
 
 **「法令訳DBに収録なし」は確認済みです。** 法令検索で法令名を引いて0件でした。同じ確認を繰り返さないよう結果を残しています。
 

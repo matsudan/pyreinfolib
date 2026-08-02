@@ -43,6 +43,7 @@ TILE_ENDPOINTS = [
     ("get_disaster_risk_areas", "XKT016", {}, range(11, 16)),
     ("get_densely_inhabited_districts", "XKT031", {}, range(9, 16)),
     ("get_landslide_prevention_districts", "XKT021", {}, range(11, 16)),
+    ("get_steep_slope_failure_hazard_areas", "XKT022", {}, range(11, 16)),
 ]
 TILE_ENDPOINT_IDS = [
     "XPT001",
@@ -56,6 +57,7 @@ TILE_ENDPOINT_IDS = [
     "XKT016",
     "XKT031",
     "XKT021",
+    "XKT022",
 ]
 
 # Tile endpoints whose only further parameters are optional filters, with the API's spelling
@@ -68,6 +70,7 @@ FILTERED_TILE_ENDPOINTS = [
     ("get_libraries", "XKT017", 13),
     ("get_disaster_risk_areas", "XKT016", 11),
     ("get_densely_inhabited_districts", "XKT031", 9),
+    ("get_steep_slope_failure_hazard_areas", "XKT022", 11),
 ]
 FILTERED_TILE_ENDPOINT_IDS = [endpoint for _, endpoint, _ in FILTERED_TILE_ENDPOINTS]
 
@@ -870,6 +873,11 @@ class TestBlankArguments:
                 {"z": 11, "x": 1819, "y": 806, "administrative_area_code": []},
                 "administrativeAreaCode",
             ),
+            (
+                "get_steep_slope_failure_hazard_areas",
+                {"z": 11, "x": 1819, "y": 806, "prefecture_code": []},
+                "prefectureCode",
+            ),
         ],
         ids=[
             "land_type_code",
@@ -883,6 +891,7 @@ class TestBlankArguments:
             "administrative_area_code on the widest zoom range",
             "prefecture_code that keeps its padding",
             "administrative_area_code alongside a prefecture filter",
+            "prefecture_code on the other endpoint that keeps its padding",
         ],
     )
     def test_an_empty_sequence_of_codes_is_refused(self, mock_api, client, method_name, args, expected):
@@ -1096,12 +1105,24 @@ class TestTileEndpointsWithOptionalFilters:
             ),
         )
 
-    def test_the_landslide_endpoint_takes_a_prefecture_and_a_municipality_filter(self, mock_api, client):
-        """XKT021 is the only endpoint taking both, so neither can be assumed from the other."""
+    @pytest.mark.parametrize(
+        ("method_name", "endpoint"),
+        [
+            ("get_landslide_prevention_districts", "XKT021"),
+            ("get_steep_slope_failure_hazard_areas", "XKT022"),
+        ],
+        ids=["XKT021", "XKT022"],
+    )
+    def test_it_takes_a_prefecture_and_a_municipality_filter(self, mock_api, client, method_name, endpoint):
+        """The two endpoints taking both filters, so neither can be assumed from the other.
+
+        Their output fields differ despite the near-identical shape, so a body copied from one
+        to the other is a real possibility.
+        """
         assert_request(
             mock_api,
-            client.get_landslide_prevention_districts,
-            "XKT021",
+            getattr(client, method_name),
+            endpoint,
             RequestCase(
                 id="both filters",
                 args={
