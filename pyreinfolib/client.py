@@ -886,14 +886,9 @@ class Client:
         Where a river is expected to inundate under the largest rainfall that can be
         envisaged for the area, designated under the Flood Prevention Act.
 
-        `at maximum scale` is kept because the parenthesis limits which data this is, and no
-        argument selects it. 国土数値情報 divides its 洪水浸水想定区域 into four categories --
-        計画規模, 想定最大規模, 浸水継続時間 and 家屋倒壊氾濫想定区域 -- and this endpoint serves
-        想定最大規模 alone. 計画規模 assumes the rainfall a river is engineered for, which floods
-        a smaller area, so a name that dropped the qualifier would not say which is returned.
-
-        `expected` appears once although 想定 appears twice in the Japanese, once in 浸水想定区域
-        and once in 想定最大規模. Nothing attests the doubled form.
+        Only 想定最大規模. 国土数値情報 publishes four 洪水浸水想定区域 categories and this
+        endpoint serves that one. 計画規模, the rainfall a river is engineered for, covers a
+        smaller area and is not available here.
         See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt026/ for details.
         :param z: Zoom level (scale). 14 (block) ~ 15 (detail)
         :param x: x value of tile coordinates.
