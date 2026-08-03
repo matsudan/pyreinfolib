@@ -1,9 +1,3 @@
-# Trimmed to the tools this repository actually uses: uv, hatchling, pytest, pytest-cov,
-# ruff and ty. The GitHub Python template it started from covered setuptools, tox, Django,
-# Flask, Scrapy, Sphinx, Jupyter, mypy, Pyre and pytype, none of which appear in
-# pyproject.toml. Those lines never matched anything, so they only obscured which artefacts
-# this project can actually produce.
-
 # Byte-compiled / optimized files
 __pycache__/
 *.py[cod]
@@ -29,6 +23,10 @@ htmlcov/
 # Not read by anything in this project, but the client takes an API key and a stray `.env`
 # is the one file here whose leak would cost something.
 .env
+
+# Where `scripts/fetch_responses.py` puts the manual pages and responses it downloads. Not
+# committed: it runs to 70MB, and the point of it is to be refetched rather than kept.
+.reinfolib-responses/
 
 # pyenv. The interpreter pin is a per-machine choice, not a project-wide one.
 .python-version
