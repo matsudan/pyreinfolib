@@ -311,7 +311,9 @@ districts: UseDistrictsResponse = client.get_use_districts(z=15, x=29099, y=1290
 
 **どのキーが必ず来るかはマニュアルに記載がないため、全フィールドを省略可能として扱っています。** 読み取りは型チェックを通りますが、実行時に `KeyError` の可能性は残ります。
 
-`geometry` は6種のジオメトリの合併型です。`type` で絞り込んでから `coordinates` を読みます。
+`geometry` は6種のジオメトリの合併型です。`type` で絞り込んでから `coordinates` を読みます。**エンドポイントごとに1種類とは決まりません。** 7本は同一タイルで複数の形を返し、XKT029 は Polygon・MultiPolygon・LineString の3つが混在します。駅別乗降客数（XKT015）はプラットホームの線なので LineString です。
+
+**`crs` は座標を使う前に読んでください。** 図書館（XKT017）と自然公園地域（XKT019）だけ EPSG:4612（JGD2000）で、残りは EPSG:6668（JGD2011）です。この2本の座標は他と厳密には一致せず、差は東北で最も大きくなります。
 
 ```python
 for feature in client.get_schools(z=13, x=7269, y=3235)["features"]:
