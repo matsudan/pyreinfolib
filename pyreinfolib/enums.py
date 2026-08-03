@@ -8,11 +8,11 @@ class PriceClassification(StrEnum):
     Leaving the argument unset asks for both.
     """
 
-    # 不動産取引価格情報
     REAL_ESTATE_TRANSACTION_PRICE = "01"
+    """不動産取引価格情報"""
 
-    # 成約価格情報
     CONTRACT_PRICE = "02"
+    """成約価格情報"""
 
 
 @unique
@@ -27,53 +27,60 @@ class LandPriceClassification(StrEnum):
     research. Rendering both as "publication" would leave the members nearly identical.
     """
 
-    # 地価公示
     LAND_MARKET_VALUE_PUBLICATION = "0"
+    """地価公示"""
 
-    # 都道府県地価調査
     PREFECTURAL_LAND_MARKET_VALUE_RESEARCH = "1"
+    """都道府県地価調査"""
 
 
 @unique
 class UseDivision(StrEnum):
-    # 住宅地
+    """Use division for the appraisal report and land price endpoints, XCT001 and XPT002.
+
+    XCT001 takes one, XPT002 takes any number of them.
+    """
+
     RESIDENTIAL_LAND = "00"
+    """住宅地"""
 
-    # 宅地見込地
     BUILDING_SITE_WITH_AN_INTERIM_USE = "03"
+    """宅地見込地"""
 
-    # 商業地
     COMMERCIAL_LAND = "05"
+    """商業地"""
 
-    # 準工業地
     QUASI_INDUSTRIAL_LAND = "07"
+    """準工業地"""
 
-    # 工業地
     INDUSTRIAL_LAND = "09"
+    """工業地"""
 
-    # 調整区域内宅地
     BUILDING_SITE_WITHIN_URBANIZATION_CONTROL_AREA = "10"
+    """調整区域内宅地"""
 
-    # 現況林地
     CURRENT_FOREST_LAND = "13"
+    """現況林地"""
 
-    # 林地（都道府県地価調査）
     FOREST_LAND = "20"
+    """林地（都道府県地価調査）"""
 
 
 @unique
 class LandTypeCode(StrEnum):
-    # 宅地(土地)
+    """Land type for the real estate price point endpoint, XPT001."""
+
     LAND = "01"
+    """宅地(土地)"""
 
-    # 宅地(土地と建物)
     LAND_AND_BUILDING = "02"
+    """宅地(土地と建物)"""
 
-    # 中古マンション等
     PRE_OWNED_CONDOMINIUMS_ETC = "07"
+    """中古マンション等"""
 
-    # 農地
     AGRICULTURAL_LAND = "10"
+    """農地"""
 
-    # 林地
     FOREST_LAND = "11"
+    """林地"""
