@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.7.1](https://github.com/matsudan/pyreinfolib/compare/v0.7.0...v0.7.1) (2026-08-03)
+
+
+### Documentation
+
+* organise the README around using the API, not around signatures ([#72](https://github.com/matsudan/pyreinfolib/issues/72)) ([ef33cab](https://github.com/matsudan/pyreinfolib/commit/ef33cab296d880b55b6190581f88f49c20695ea6))
+* remove the endpoint count and the inline code list ([#73](https://github.com/matsudan/pyreinfolib/issues/73)) ([d68478d](https://github.com/matsudan/pyreinfolib/commit/d68478d0486c5736e36a866047d93584001c53b7))
+* show the code table wording on enum members ([#74](https://github.com/matsudan/pyreinfolib/issues/74)) ([bb2be6d](https://github.com/matsudan/pyreinfolib/commit/bb2be6d9cb53fbbe45009d57a43aceea1fd8762e))
+* split the glossary into its own file ([#70](https://github.com/matsudan/pyreinfolib/issues/70)) ([6e77cc7](https://github.com/matsudan/pyreinfolib/commit/6e77cc74af5bd23dd4ec8d4bf11d6dad46989f1e))
+
 ## [0.7.0](https://github.com/matsudan/pyreinfolib/compare/v0.6.0...v0.7.0) (2026-08-02)
 
 
