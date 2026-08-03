@@ -6,9 +6,9 @@
 [![License: MIT](https://img.shields.io/pypi/l/pyreinfolib)](https://github.com/matsudan/pyreinfolib/blob/main/LICENSE)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
-国土交通省[不動産情報ライブラリ](https://www.reinfolib.mlit.go.jp/)APIサービスのPythonクライアントです。公開されている35本のAPIすべてに対応しています。
+国土交通省[不動産情報ライブラリ](https://www.reinfolib.mlit.go.jp/)APIサービスのPythonクライアントです。対応しているAPIは[Endpoints](#endpoints)にあります。
 
-API仕様の詳細は[API操作説明ページ](https://www.reinfolib.mlit.go.jp/help/apiManual/)をご参照ください。APIキーは[利用申請](https://www.reinfolib.mlit.go.jp/help/apiManual/)で取得します。
+API仕様の詳細は[API操作説明ページ](https://www.reinfolib.mlit.go.jp/help/apiManual/)をご参照ください。APIキーは[API利用申請](https://www.reinfolib.mlit.go.jp/api/request/)で取得します。
 
 ## Installation
 
@@ -188,7 +188,7 @@ client.get_welfare_facilities(
 client.get_disaster_history(z=9, x=227, y=100, disastertype_code=["11", "22"])
 ```
 
-災害分類コードは 11 浸水域等、12 堤防決壊箇所等、13 高潮浸水域等、14 高潮破堤箇所等、21 がけ崩れ等、22 地すべり等、23 河道閉塞箇所等、24 土石流等、33 液状化、34 地震土砂災害、37 津波高、38 津波浸水域 です。
+災害分類コードは独立したコード表がないので、[XST001 のマニュアルページ](https://www.reinfolib.mlit.go.jp/help/apiManual/xst001/)か `get_disaster_history` の docstring を見てください。
 
 ### 都道府県コードの形式
 
@@ -282,7 +282,7 @@ for record in prices["data"]:
     print(record["TradePirce"])  # 型エラー
 ```
 
-型名はメソッド名から機械的に決まります。変数や自作関数に注釈を付けるときに使ってください。
+型名はメソッド名から機械的に決まります。変数や自作関数に型注釈を付けるときに使ってください。
 
 ```python
 from pyreinfolib.types import RealEstatePricesItem, UseDistrictsResponse
@@ -321,7 +321,7 @@ for feature in client.get_schools(z=13, x=7269, y=3235)["features"]:
 `get_population_projections_in_250m_grid_squares`（XKT013）だけは `properties` が `dict[str, Any]` です。`PT01_20XX` のようにフィールド名が年を含み、マニュアルがその年をプレースホルダで書いているためです。
 
 > [!NOTE]
-> 0.6.0 以前は全メソッドが `dict[str, Any]` を返していました。返り値を `dict[str, Any]` と注釈していた場合、`TypedDict` は `dict[str, Any]` に代入できないため型チェックが落ちます。注釈を外すか、対応する `...Response` に差し替えてください。実行時の挙動は変わりません。
+> 0.6.0 以前は全メソッドが `dict[str, Any]` を返していました。返り値を `dict[str, Any]` と型注釈していた場合、`TypedDict` は `dict[str, Any]` に代入できないため型チェックが落ちます。型注釈を外すか、対応する `...Response` に差し替えてください。実行時の挙動は変わりません。
 
 ## Contributing
 
