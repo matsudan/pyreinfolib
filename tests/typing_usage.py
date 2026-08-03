@@ -216,9 +216,10 @@ def reading_a_non_tile_response(client: Client) -> None:
     assert status == "OK" and len(code) == 5
 
     reports = client.get_appraisal_reports(year=2024, area="13", division=UseDivision.INDUSTRIAL_LAND)
-    # Japanese keys, which is what XCT001 documents. The U+3000 spaces are part of the key.
+    # Japanese keys, which is what XCT001 sends. The spaces are part of the key, and they are
+    # plain U+0020 despite the manual rendering them as U+3000.
     unit_price: str = reports["data"][0]["1㎡当たりの価格"]
-    shape: str = reports["data"][0]["標準地　形状　形状"]
+    shape: str = reports["data"][0]["標準地 形状 形状"]
     assert unit_price.isdigit() and shape != ""
 
 
@@ -241,6 +242,26 @@ def reading_a_tile_response(client: Client) -> None:
 
     # An empty tile is an empty list, not an error, so this is the normal shape of the loop.
     assert len(districts["features"]) >= 0
+
+
+def reading_the_collections_own_members(client: Client) -> None:
+    """`name` and `crs` sit beside `features`, and neither is in the manual."""
+    districts = client.get_use_districts(z=14, x=14339, y=6505)
+
+    # `str | list[str]`, because the API is not consistent: XKT001 joins the two layers it
+    # merges into one comma-separated string where XPT001 sends a list.
+    layers: str | list[str] = districts.get("name", "")
+    assert layers != []
+
+    crs = districts.get("crs")
+    if crs is not None:
+        # EPSG:6668, which is JGD2011, on every response seen so far.
+        assert crs["properties"]["name"].startswith("urn:ogc:def:crs:")
+
+    # Elasticsearch metadata showing through. Undocumented, so optional on every endpoint --
+    # XPT001 sends neither where the others send both.
+    identifier = districts["features"][0]["properties"].get("_id")
+    assert identifier is None or identifier != ""
 
 
 def narrowing_geometry(client: Client) -> None:

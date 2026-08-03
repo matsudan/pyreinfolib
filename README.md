@@ -303,7 +303,9 @@ districts: UseDistrictsResponse = client.get_use_districts(z=15, x=29099, y=1290
 
 ### 型を読むときの注意
 
-**キーと値の型は API のマニュアル通りです。** 整えていないので、国土数値情報の属性コード（`A27_001`）、ローマ字（`kubun_id`）、`_ja` 接尾辞、XCT001 の日本語キー（全角スペース入り）、XPT002 の `proximity_to_transportation_facilitites`（API 側の綴り間違い）がそのまま出てきます。
+**キーと値の型は API に合わせています。** 整えていないので、国土数値情報の属性コード（`A27_001`）、ローマ字（`kubun_id`）、`_ja` 接尾辞、XCT001 の日本語キー（スペース入り）、XPT002 の `proximity_to_transportation_facilitites`（API 側の綴り間違い）がそのまま出てきます。
+
+根拠はマニュアルの `＜出力＞` 表ですが、実レスポンスを確認できたものはそちらに従っています。XCT001 は表の109キーのうち63個が実物と違いました。
 
 値の型もマニュアルの宣言通りです。XIT001 は取引価格を含めて全フィールドが文字列型なので、`record["TradePrice"]` は `str` です。
 
