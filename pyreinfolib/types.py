@@ -1,43 +1,28 @@
 """The shape of the bodies the API returns.
 
-These are `TypedDict`s, so they are a static claim and nothing more: no member is checked at
-runtime, and `Client` does not validate what it decoded. What they buy is that `r["data"][0]`
-and a feature's `properties` stop being `Any`, so a misspelled key is a type error rather than
-a `KeyError` found by whoever runs the code next.
+These are `TypedDict`s and nothing more: no member is checked at runtime, and `Client` does not
+validate what it decoded. What they buy is that `r["data"][0]` and a feature's `properties` stop
+being `Any`, so a misspelled key is a type error rather than a `KeyError` found by whoever runs
+the code next.
 
-**Keys are the API's own tag names, verbatim.** Each endpoint's manual page carries an
-`＜出力＞` table whose タグ名 column is the JSON key, and that column is copied here without
-being tidied. That means the inconsistencies come along: 国土数値情報 attribute codes
-(`A27_001`), romanised Japanese (`kubun_id`), a `_ja` suffix on the fields that follow the
-`language` parameter, Japanese keys with spaces in them in XCT001, and at least one typo of the
-API's own (`proximity_to_transportation_facilitites` in XPT002). Correcting any of them would
-produce a key that does not exist in the response.
+**Keys are the API's own tag names, verbatim**, so its inconsistencies come with them: 国土数値情報
+attribute codes (`A27_001`), romanised Japanese (`kubun_id`), a `_ja` suffix on the fields that
+follow the `language` argument, Japanese keys with spaces in XCT001, and one misspelling of the
+API's own (`proximity_to_transportation_facilitites` in XPT002). Correcting any of them would name
+a key that no response contains.
 
-Where a live response disagrees with the manual, the response wins. Every endpoint has now been
-read once, and the manual's key names held everywhere except XCT001, whose table is wrong about
-63 of its 109 names; see the comment on `AppraisalReportsItem`.
+**Every record field is optional.** Which keys a response carries is undocumented, and two
+endpoints do omit some. Reading one still type checks, so this costs nothing to use; what it
+avoids is claiming a guarantee the API does not make. Nothing is annotated `| None` either, no
+response having been seen to send one.
 
-**Value types are the ones the manual declares** -- 文字列型 as `str`, 整数型 as `int`, 実数型
-as `float`, 真偽型 as `bool`. Checked against a live response on every endpoint, and the manual
-was right each time. Note that it declares a type per endpoint, not per field name, and it
-disagrees with itself: `kubun_id` is 整数型 on XKT001, XKT003, XKT014 and XKT030, and 文字列型
-on XKT023 and XKT024. Each is written as its own page documents it.
+**A field the manual declares 実数型 arrives as `int` when its value is whole**, JSON having one
+number type. It is annotated `float` anyway, which is what arithmetic wants, but it does mean
+`isinstance(value, float)` can be `False`, and that a float-only call such as `.hex()` is reported
+by some type checkers and not others.
 
-One caveat on 実数型: JSON does not distinguish, so a whole value decodes to `int`. XKT016's
-`A48_012` arrived that way. `float` is still the right annotation, because the typing spec reads
-`float` as accepting `int`, but `isinstance(value, float)` on one of these can be `False`.
-
-**Every record field is optional** (`total=False`). The manual gives no field a "required"
-marker and leaves the データ例 column blank for many of them, so which keys are actually
-present in a given record is not documented. Reading a key still type checks; what
-`total=False` avoids is claiming a guarantee the API does not make. A field confirmed against
-a live response can be tightened later, one at a time.
-
-Nullability is not modelled, for the same reason and with less evidence: the manual says
-nothing about it. Every field whose declared type is not 文字列型 does at least carry a
-concrete データ例, so the declared type is attested for those. If a field turns out to arrive
-as `null`, widening it to `| None` is a breaking change for readers, so it wants a live
-response rather than a guess.
+CONTRIBUTING.md has the rules these types follow, and what has been checked against a live
+response.
 """
 
 from typing import Any, Generic, Literal, NotRequired, TypedDict, TypeVar
