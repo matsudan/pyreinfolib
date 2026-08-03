@@ -1,37 +1,28 @@
 """The shape of the bodies the API returns.
 
-These are `TypedDict`s, so they are a static claim and nothing more: no member is checked at
-runtime, and `Client` does not validate what it decoded. What they buy is that `r["data"][0]`
-and a feature's `properties` stop being `Any`, so a misspelled key is a type error rather than
-a `KeyError` found by whoever runs the code next.
+These are `TypedDict`s and nothing more: no member is checked at runtime, and `Client` does not
+validate what it decoded. What they buy is that `r["data"][0]` and a feature's `properties` stop
+being `Any`, so a misspelled key is a type error rather than a `KeyError` found by whoever runs
+the code next.
 
-**Keys are the API's own tag names, verbatim.** Each endpoint's manual page carries an
-`＜出力＞` table whose タグ名 column is the JSON key, and that column is copied here without
-being tidied. That means the inconsistencies come along: 国土数値情報 attribute codes
-(`A27_001`), romanised Japanese (`kubun_id`), a `_ja` suffix on the fields that follow the
-`language` parameter, Japanese keys with spaces in them in XCT001, and at least one typo of the
-API's own (`proximity_to_transportation_facilitites` in XPT002). Correcting any of them would
-produce a key that does not exist in the response.
+**Keys are the API's own tag names, verbatim**, so its inconsistencies come with them: 国土数値情報
+attribute codes (`A27_001`), romanised Japanese (`kubun_id`), a `_ja` suffix on the fields that
+follow the `language` argument, Japanese keys with spaces in XCT001, and one misspelling of the
+API's own (`proximity_to_transportation_facilitites` in XPT002). Correcting any of them would name
+a key that no response contains.
 
-Where a live response has been read, it wins over the manual. XCT001's table turned out to be
-wrong about 63 of its 109 names; see the comment on `AppraisalReportsItem`.
+**Every record field is optional.** Which keys a response carries is undocumented, and two
+endpoints do omit some. Reading one still type checks, so this costs nothing to use; what it
+avoids is claiming a guarantee the API does not make. Nothing is annotated `| None` either, no
+response having been seen to send one.
 
-**Value types are the ones the manual declares** -- 文字列型 as `str`, 整数型 as `int`, 実数型
-as `float`, 真偽型 as `bool`. Note that the manual declares a type per endpoint, not per field
-name, and it disagrees with itself: `kubun_id` is 整数型 on XKT001, XKT003, XKT014 and XKT030,
-and 文字列型 on XKT023 and XKT024. Each is written as its own page documents it.
+**A field the manual declares 実数型 arrives as `int` when its value is whole**, JSON having one
+number type. It is annotated `float` anyway, which is what arithmetic wants, but it does mean
+`isinstance(value, float)` can be `False`, and that a float-only call such as `.hex()` is reported
+by some type checkers and not others.
 
-**Every record field is optional** (`total=False`). The manual gives no field a "required"
-marker and leaves the データ例 column blank for many of them, so which keys are actually
-present in a given record is not documented. Reading a key still type checks; what
-`total=False` avoids is claiming a guarantee the API does not make. A field confirmed against
-a live response can be tightened later, one at a time.
-
-Nullability is not modelled, for the same reason and with less evidence: the manual says
-nothing about it. Every field whose declared type is not 文字列型 does at least carry a
-concrete データ例, so the declared type is attested for those. If a field turns out to arrive
-as `null`, widening it to `| None` is a breaking change for readers, so it wants a live
-response rather than a guess.
+CONTRIBUTING.md has the rules these types follow, and what has been checked against a live
+response.
 """
 
 from typing import Any, Generic, Literal, NotRequired, TypedDict, TypeVar
@@ -74,20 +65,31 @@ class MultiPolygon(TypedDict):
     coordinates: list[list[list[Position]]]
 
 
-# A union rather than one type per endpoint, and not narrowable to one per endpoint either.
-# The manual's output tables say nothing about geometry. XKT029 notes that some of its areas
-# come back as lines rather than polygons. Live tiles from XKT001 and XKT014 each returned
-# Polygons and a MultiPolygon together. And the shape is not always the obvious one: XKT015,
-# 駅別乗降客数, answers with LineStrings rather than points, because a station is drawn as its
-# platform line. Narrow on `type` to read `coordinates`; the tag is what makes that possible.
+# A union rather than one type per endpoint, and reading a live tile from all 32 of them says
+# it cannot be narrowed to one either. The manual's output tables say nothing about geometry.
+#
+# Seven endpoints returned more than one shape in a single tile: XKT001, XKT014, XKT020, XKT026
+# and XKT027 mixed Polygon with MultiPolygon, XKT030 mixed LineString with MultiLineString,
+# XKT029 returned all three of Polygon, MultiPolygon and LineString, and XST001 returned
+# Polygons alongside Points. The shape is not always the one the subject suggests either:
+# XKT015, 駅別乗降客数, answers with LineStrings, because a station is drawn as its platform
+# line rather than as a point.
+#
+# Five of the six members below have been seen. MultiPoint has not, but one tile per endpoint is
+# no basis for dropping a shape GeoJSON allows.
+#
+# Narrow on `type` to read `coordinates`; the tag is what makes that possible.
 Geometry = Point | MultiPoint | LineString | MultiLineString | Polygon | MultiPolygon
 
 
 class CoordinateReferenceSystem(TypedDict):
     """The `crs` member of a feature collection, in the form GeoJSON used before RFC 7946.
 
-    Every tile response seen so far carries the same one, naming EPSG:6668, which is JGD2011.
-    Worth knowing before combining these coordinates with data on another datum.
+    **Worth reading rather than assuming.** The API does not put every endpoint on one datum.
+    Thirty of the 32 tile endpoints name EPSG:6668, which is JGD2011, but XKT017 (図書館) and
+    XKT019 (自然公園地域) name EPSG:4612, which is JGD2000. Coordinates from those two do not
+    line up exactly with the rest, and the gap is widest in Tohoku, where the 2011 earthquake
+    moved the ground between the two realisations.
     """
 
     type: Literal["name"]
@@ -98,9 +100,9 @@ class TileProperties(TypedDict, total=False):
     """Two keys every tile endpoint's `properties` may carry, neither of them documented.
 
     `_id` and `_index` are Elasticsearch document metadata showing through, and they lead the
-    key order. Four of the five tile endpoints sampled send both on every feature; XPT001 sends
-    neither. Optional rather than required for that reason, and because nothing in the manual
-    mentions them at all -- they are not a field a caller should build on.
+    key order. 31 of the 32 tile endpoints send both on every feature; XPT001 sends neither.
+    Optional rather than required for that reason, and because nothing in the manual mentions
+    them at all -- they are not a field a caller should build on.
     """
 
     _id: str
@@ -128,11 +130,13 @@ class FeatureCollection(TypedDict, Generic[P]):
     Endpoints addressed by tile coordinates answer 200 with no features rather than 404, so
     this arrives rather than `NoResultsError` whenever a tile holds nothing.
 
-    `name` and `crs` are not in the manual and are not required by GeoJSON, hence optional,
-    but every tile response seen so far carries both. `name` names the source layers and its
-    type is not consistent: XPT002 sends `'land_prices'`, XKT001 sends the two layers it
-    merges as one comma-joined string, and XPT001 sends a list of two. `str | list[str]`
-    covers what has been seen rather than what would be tidy.
+    `name` and `crs` are not in the manual and are not required by GeoJSON, hence optional, but
+    all 32 tile endpoints send both. `name` names the source layers, and its type is not
+    consistent: 31 send a string, and XKT001 puts the two layers it merges into one of them as
+    `'urban_plan_area, area_classification'`, while XPT001 alone sends a list. `str | list[str]`
+    covers what arrives rather than what would be tidy.
+
+    `crs` is worth reading; see `CoordinateReferenceSystem` for why.
     """
 
     type: Literal["FeatureCollection"]
