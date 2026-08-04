@@ -12,9 +12,8 @@ API's own (`proximity_to_transportation_facilitites` in XPT002). Correcting any 
 a key that no response contains.
 
 **Every record field is optional.** Which keys a response carries is undocumented, and two
-endpoints do omit some. Reading one still type checks, so this costs nothing to use; what it
-avoids is claiming a guarantee the API does not make. Nothing is annotated `| None` either, no
-response having been seen to send one.
+endpoints do omit some. Reading one still type checks, so this costs nothing to use. Nothing is
+annotated `| None` either.
 
 **A field the manual declares 実数型 arrives as `int` when its value is whole**, JSON having one
 number type. It is annotated `float` anyway, which is what arithmetic wants, but it does mean
@@ -65,18 +64,12 @@ class MultiPolygon(TypedDict):
     coordinates: list[list[list[Position]]]
 
 
-# A union rather than one type per endpoint, and reading a live tile from all 32 of them says
-# it cannot be narrowed to one either. The manual's output tables say nothing about geometry.
+# A union rather than one type per endpoint, because a single tile can carry more than one
+# shape: several endpoints mix Polygon with MultiPolygon, and XKT029 answers with Polygon,
+# MultiPolygon and LineString together. The manual's output tables say nothing about geometry.
 #
-# Seven endpoints returned more than one shape in a single tile: XKT001, XKT014, XKT020, XKT026
-# and XKT027 mixed Polygon with MultiPolygon, XKT030 mixed LineString with MultiLineString,
-# XKT029 returned all three of Polygon, MultiPolygon and LineString, and XST001 returned
-# Polygons alongside Points. The shape is not always the one the subject suggests either:
-# XKT015, 駅別乗降客数, answers with LineStrings, because a station is drawn as its platform
-# line rather than as a point.
-#
-# Five of the six members below have been seen. MultiPoint has not, but one tile per endpoint is
-# no basis for dropping a shape GeoJSON allows.
+# The shape is not always the one the subject suggests either. XKT015, 駅別乗降客数, answers
+# with LineStrings, because a station is drawn as its platform line rather than as a point.
 #
 # Narrow on `type` to read `coordinates`; the tag is what makes that possible.
 Geometry = Point | MultiPoint | LineString | MultiLineString | Polygon | MultiPolygon
@@ -86,10 +79,10 @@ class CoordinateReferenceSystem(TypedDict):
     """The `crs` member of a feature collection, in the form GeoJSON used before RFC 7946.
 
     **Worth reading rather than assuming.** The API does not put every endpoint on one datum.
-    Thirty of the 32 tile endpoints name EPSG:6668, which is JGD2011, but XKT017 (図書館) and
-    XKT019 (自然公園地域) name EPSG:4612, which is JGD2000. Coordinates from those two do not
-    line up exactly with the rest, and the gap is widest in Tohoku, where the 2011 earthquake
-    moved the ground between the two realisations.
+    Most name EPSG:6668, which is JGD2011, but XKT017 (図書館) and XKT019 (自然公園地域) name
+    EPSG:4612, which is JGD2000. Coordinates from those two do not line up exactly with the
+    rest, and the gap is widest in Tohoku, where the 2011 earthquake moved the ground between
+    the two realisations.
     """
 
     type: Literal["name"]
@@ -100,9 +93,8 @@ class TileProperties(TypedDict, total=False):
     """Two keys every tile endpoint's `properties` may carry, neither of them documented.
 
     `_id` and `_index` are Elasticsearch document metadata showing through, and they lead the
-    key order. 31 of the 32 tile endpoints send both on every feature; XPT001 sends neither.
-    Optional rather than required for that reason, and because nothing in the manual mentions
-    them at all -- they are not a field a caller should build on.
+    key order. Every tile endpoint sends both except XPT001, which sends neither. Nothing in
+    the manual mentions them, so they are not a field to build on.
     """
 
     _id: str
@@ -115,8 +107,7 @@ P = TypeVar("P")
 class Feature(TypedDict, Generic[P]):
     """One GeoJSON feature. `P` is the endpoint's properties type.
 
-    `geometry` is optional in GeoJSON itself, hence `| None`. No response has been observed
-    using that, but the format allows it and a decoded `None` would otherwise be a lie.
+    `geometry` is `| None` because GeoJSON allows a null geometry.
     """
 
     type: Literal["Feature"]
@@ -131,10 +122,9 @@ class FeatureCollection(TypedDict, Generic[P]):
     this arrives rather than `NoResultsError` whenever a tile holds nothing.
 
     `name` and `crs` are not in the manual and are not required by GeoJSON, hence optional, but
-    all 32 tile endpoints send both. `name` names the source layers, and its type is not
-    consistent: 31 send a string, and XKT001 puts the two layers it merges into one of them as
-    `'urban_plan_area, area_classification'`, while XPT001 alone sends a list. `str | list[str]`
-    covers what arrives rather than what would be tidy.
+    every tile endpoint sends both. `name` names the source layers, and its type is not
+    consistent: most send a string, XKT001 comma joins the two layers it merges into one string
+    as `'urban_plan_area, area_classification'`, and XPT001 sends a list.
 
     `crs` is worth reading; see `CoordinateReferenceSystem` for why.
     """
@@ -151,12 +141,11 @@ T = TypeVar("T")
 class DataResponse(TypedDict, Generic[T]):
     """What the three endpoints that do not take tile coordinates return.
 
-    Unlike everything below, this envelope is not in the manual: its output tables describe
-    one record and stop. The two keys are what the API is observed to send, and what this
-    repository's tests have assumed since before these types existed.
+    Unlike everything below, this envelope is not in the manual: its output tables describe one
+    record and stop. The two keys are what the API sends.
 
-    `status` is not a `Literal["OK"]` because the full set of values it can take is unknown,
-    and an error status never reaches here anyway -- a non-2xx response raises.
+    `status` is a `str` rather than a `Literal["OK"]`, the full set of values it can take being
+    unknown. An error status does not arrive here in any case, a non-2xx response raising.
     """
 
     status: str
@@ -167,12 +156,9 @@ class DataResponse(TypedDict, Generic[T]):
 # are named after the year they hold, and the manual writes that year as a placeholder:
 # `PT01_20XX`, `RTA_20XX`, `HITOKU20XX`.
 #
-# A live tile came back with 339 of them, on years 2020 to 2070 in steps of five. The set is not
-# a clean product of the 34 field prefixes and those 11 years: 2020 carries only `PTN_2020`,
-# `GASSAN` starts at 2055, and `GASSAN2055` through `GASSAN2070` were each missing from some
-# features. Which years appear at all follows whichever projection is published -- the current
-# data is the R6 estimate -- so writing them out would produce a type that goes wrong on the
-# next release, and reading a key that does exist would then be an error. An open mapping is the
+# Which years arrive is not a clean product of the field prefixes and a fixed set of years, and
+# it follows whichever projection is published, so a `TypedDict` would go wrong on the next
+# release and reading a key that does exist would then be an error. An open mapping is the
 # honest type; the feature collection around it is still precise.
 PopulationProjectionsIn250mGridSquaresProperties = dict[str, Any]
 PopulationProjectionsIn250mGridSquaresResponse = FeatureCollection[PopulationProjectionsIn250mGridSquaresProperties]
@@ -240,12 +226,11 @@ MunicipalitiesResponse = DataResponse[MunicipalitiesItem]
 # its fields in Japanese, and all but 13 of them contain a space separating the levels of the
 # source spreadsheet's column headings.
 #
-# These are the keys a live response actually carries, which the manual's output table gets
-# wrong in 63 of 109 places. It renders every separator as U+3000 where the response uses a
-# plain U+0020, and six names differ by more than whitespace: it writes 用途区分コード and
-# 構造コード for what arrive as 用途区分 and 構造, 建蔽率 for 建ぺい率, and 緯度 and 経度 for
-# 位置座標 緯度 and 位置座標 経度. Key order does match, and every declared value type checked
-# out, so the types below still come from the manual.
+# **These are the keys the response carries, not the ones the manual prints.** The manual's
+# output table renders every separator as U+3000 where the response uses a plain U+0020, and six
+# names differ by more than whitespace: it writes 用途区分コード and 構造コード for what arrive as
+# 用途区分 and 構造, 建蔽率 for 建ぺい率, and 緯度 and 経度 for 位置座標 緯度 and 位置座標 経度.
+# A key copied out of the manual will not be found here, or in a response.
 #
 # See https://www.reinfolib.mlit.go.jp/help/apiManual/xct001/
 AppraisalReportsItem = TypedDict(
@@ -446,8 +431,7 @@ class LandMarketValuePublicationAndResearchPointProperties(TileProperties, total
     sewer_supply_availability: bool  # 下水道の有無
     nearest_station_name_ja: str  # 最寄り駅名
     # `facilitites` is the API's spelling, not a typo introduced here: it carries an extra `t`
-    # where the word is `facilities`. Confirmed against a live response, so correcting it would
-    # name a key that does not exist.
+    # where the word is `facilities`.
     proximity_to_transportation_facilitites: int  # 交通施設との近接区分
     u_road_distance_to_nearest_station_name_ja: str  # 最寄り駅までの道路距離
     usage_status_name_ja: str  # 利用現況
@@ -599,16 +583,13 @@ SchoolsResponse = FeatureCollection[SchoolsProperties]
 class NurserySchoolsAndKindergartensEtcProperties(TileProperties, total=False):
     """One feature's `properties` from XKT007, 国土数値情報（保育園・幼稚園等）API.
 
-    The only endpoint whose manual documents two output tables, one for 幼稚園 and こども園 and
-    one for 保育園. The dataset is built by merging 国土数値情報「学校」 and 「福祉施設」, which is
-    where the split comes from.
+    The dataset is built by merging 国土数値情報「学校」 and 「福祉施設」, and the manual documents one
+    output table per side, 幼稚園 and こども園 against 保育園. One type covers both: most keys of
+    both sides arrive on either, blank rather than absent. Only `schoolClassCode`,
+    `schoolClassCode_name_ja` and `closeSchoolCode` are confined to the 幼稚園 side.
 
-    A live response does not come in two shapes, though, which is why this is one type. Every
-    feature in the tile sampled carried `schoolCode` and all three welfare facility codes; the
-    welfare codes simply arrive blank on the 幼稚園 side. Only `schoolClassCode`,
-    `schoolClassCode_name_ja` and `closeSchoolCode` were genuinely conditional, on 8 of 48
-    features. So `welfareFacilityClassCode` being blank or `05` does tell the two apart, but by
-    a value rather than by a key, which a union of `TypedDict`s could not express anyway.
+    **Tell the two apart by a value, not by a key.** `welfareFacilityClassCode` arrives on every
+    feature: `05` on the 保育園 side, blank on the other.
 
     See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt007/
     """
@@ -619,13 +600,15 @@ class NurserySchoolsAndKindergartensEtcProperties(TileProperties, total=False):
     location_ja: str  # 所在地
     administratorCode: int  # 管理者コード
 
-    # 幼稚園 or こども園 only.
+    # From the 学校 side. `schoolCode` arrives on either, blank on the 保育園 side; the other
+    # three are absent there.
     schoolCode: str  # 学校コード
     schoolClassCode: int  # 学校分類コード
     schoolClassCode_name_ja: str  # 学校分類名
     closeSchoolCode: int  # 休校コード
 
-    # 保育園 only. The same three-level classification `get_welfare_facilities` filters on.
+    # From the 福祉施設 side, blank on the 幼稚園 side. The same three-level classification
+    # `get_welfare_facilities` filters on.
     welfareFacilityClassCode: str  # 福祉施設大分類コード
     welfareFacilityMiddleClassCode: str  # 福祉施設中分類コード
     welfareFacilityMinorClassCode: str  # 福祉施設小分類コード
