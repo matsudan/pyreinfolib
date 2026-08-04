@@ -61,10 +61,8 @@ _RETRY_STATUSES = (429, 500, 502, 503, 504)
 # Zoom levels a tile endpoint accepts, as data rather than as a type. Most take this range;
 # each endpoint that does not passes its own to `_get_tile`.
 #
-# A range and not a `Literal`: the levels have to be checkable against a value that arrives
-# computed. `pyreinfolib.tiles` hands back a `Tile` whose `z` is an `int`, and a `Literal`
-# parameter rejects every one of them, which made the documented `client.get_...(*tile)` fail
-# to type check while doing nothing about an out-of-range level held in a variable.
+# A range rather than a `Literal`, because a level has to be checkable against a value that
+# arrives computed: `pyreinfolib.tiles` hands back a `Tile` whose `z` is an `int`.
 _DEFAULT_ZOOM_LEVELS = range(11, 16)
 
 # Statuses whose meaning the API documents. Anything else falls back to `APIError`, which
@@ -133,10 +131,10 @@ def _compact(params: dict[str, Any]) -> dict[str, Any]:
     query on purpose. Which arguments an endpoint cannot do without is its own method's
     business; XIT001, for one, needs at least one of `area`, `city` and `station`.
 
-    A blank value is not another way to omit an argument. It used to be dropped as though it
-    were `None`, which meant `city=""` quietly widened a query, a blank required argument
-    disappeared from the request altogether, and an empty list of codes read as no filter at
-    all. None of the three announced itself.
+    A blank value is not another way to omit an argument, so it is refused rather than dropped.
+    Dropping it would let `city=""` widen a query, take a blank required argument out of the
+    request altogether, and read an empty list of codes as no filter at all. None of the three
+    announces itself.
 
     Values are compared against `""` rather than tested for truthiness. `x=0` is a valid tile
     coordinate, and a future parameter whose valid values include `0` would otherwise vanish
@@ -239,10 +237,9 @@ class Client:
         """
         api_url = urljoin(self.base_url, endpoint)
 
-        # Each failure mode gets its own `try`. Wrapping the whole exchange in one block
-        # would have to re-derive which stage failed from the exception type, which is how
-        # the previous version came to dereference a `response` that connection errors and
-        # timeouts do not have.
+        # Each failure mode gets its own `try`. One block around the whole exchange would
+        # have to re-derive which stage failed from the exception type, and a connection
+        # error or a timeout carries no `response` to read.
         try:
             r = self._session.get(api_url, params=params, timeout=self.timeout)
         except requests.RequestException as e:
@@ -390,7 +387,7 @@ class Client:
         :raises NoResultsError: If no appraisal report matches the given year and area.
         """
         # Through `_compact` although nothing here is optional, so that a blank `area` is
-        # refused rather than sent as `area=`, which is what this method did on its own.
+        # refused rather than sent as `area=`.
         params = _compact({"year": year, "area": area, "division": division})
 
         return self._get("XCT001", params)
@@ -623,12 +620,9 @@ class Client:
     ) -> WelfareFacilitiesResponse:
         """Get welfare facilities (福祉施設).
 
-        The three class codes are one nested classification at three levels of detail, and
-        they are `str` rather than enums. Two of the seven major classes have no published
-        English name -- 身体障害者社会参加支援施設 and 母子・父子福祉施設 rest on the two
-        welfare acts that the Japanese Law Translation database does not carry -- and an enum
-        naming five of seven would leave the caller mixing members with bare strings for the
-        same argument. `area` and `city` are `str` for the same reason.
+        The three class codes are one nested classification at three levels of detail: a minor
+        class code begins with the middle class code it sits under, which begins with the major
+        class code. `020302` is a minor class of `0203`, which is a middle class of `02`.
         See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt011/ for details.
         :param z: Zoom level (scale). 13 ~ 15 (detail)
         :param x: x value of tile coordinates.
@@ -1114,8 +1108,6 @@ class Client:
         Where past disasters are recorded as having struck, compiled by the national land
         survey from historical documents. A feature carries the date and the document it came
         from, so what is here reflects what was recorded rather than everything that happened.
-
-        Singular because 災害履歴 names the record rather than a countable area.
         See https://www.reinfolib.mlit.go.jp/help/apiManual/xst001/ for details.
         :param z: Zoom level (scale). 9 (prefecture) ~ 15 (detail)
         :param x: x value of tile coordinates.
@@ -1125,7 +1117,6 @@ class Client:
           `11` 浸水域等, `12` 堤防決壊箇所等, `13` 高潮浸水域等, `14` 高潮破堤箇所等,
           `21` がけ崩れ等, `22` 地すべり等, `23` 河道閉塞箇所等, `24` 土石流等, `33` 液状化,
           `34` 地震土砂災害, `37` 津波高, `38` 津波浸水域.
-          Not an enum: four of the twelve have no published English name.
           If not specified, every classification.
         :return: Disaster history. (Response format: GeoJson)
         :raises ValueError: If `z` is not between 9 and 15, or `disastertype_code` is empty.
