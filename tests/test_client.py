@@ -408,22 +408,48 @@ class TestClient:
                 },
             ),
             RequestCase(
-                id="only required param",
-                args={"year": 2025},
-                expected_params={"year": "2025"},
+                # The required minimum is a period and one place. Three cases because any one
+                # of the three places satisfies the requirement on its own.
+                id="year and a prefecture",
+                args={"year": 2025, "area": "13"},
+                expected_params={"year": "2025", "area": "13"},
             ),
             RequestCase(
-                # Omitting the filters is a supported request, not a mistake: `year` is the
-                # only required argument, so this asks for the whole country deliberately.
+                id="year and a municipality",
+                args={"year": 2025, "city": "13109"},
+                expected_params={"year": "2025", "city": "13109"},
+            ),
+            RequestCase(
+                id="year and a station",
+                args={"year": 2025, "station": "003785"},
+                expected_params={"year": "2025", "station": "003785"},
+            ),
+            RequestCase(
+                # Omitting a filter is a supported request, not a mistake, as long as one place
+                # remains: this narrows to a municipality and asks for every quarter of the year.
                 id="omitted optional params are absent from the query",
-                args={"year": 2025, "price_classification": None, "quarter": None, "city": None},
-                expected_params={"year": "2025"},
+                args={"year": 2025, "price_classification": None, "quarter": None, "city": "13109"},
+                expected_params={"year": "2025", "city": "13109"},
             ),
         ],
         ids=lambda case: case.id,
     )
     def test_get_real_estate_prices(self, mock_api, client, case):
         assert_request(mock_api, client.get_real_estate_prices, "XIT001", case)
+
+    def test_get_real_estate_prices_requires_a_place(self, mock_api, client):
+        """`year` on its own reads as a whole-country query, which XIT001 does not offer.
+
+        Nothing is registered on `mock_api`, so a request that went out anyway would fail as an
+        unmatched request rather than spending a round trip to learn the same thing.
+        """
+        with pytest.raises(ValueError) as exc_info:
+            client.get_real_estate_prices(year=2025)
+
+        message = str(exc_info.value)
+        assert "area" in message
+        assert "city" in message
+        assert "station" in message
 
     @pytest.mark.parametrize(
         "case",
@@ -786,16 +812,21 @@ class TestBlankArguments:
     the request, and `land_type_code=[]` read as no filter. None of the three said anything, so
     a caller who thought they had filtered got a wider answer and no indication of it.
 
-    Omitting a filter is still supported and still means the whole country. It is spelled by
-    leaving the argument out, or passing `None`, which `test_get_real_estate_prices` covers.
+    Omitting a filter is still supported and still widens the query. It is spelled by leaving
+    the argument out, or passing `None`, which `test_get_real_estate_prices` covers.
     """
 
     @pytest.mark.parametrize("argument", ["area", "city", "station", "language"])
     def test_a_blank_optional_filter_is_refused(self, mock_api, client, argument):
         """Nothing is registered on `mock_api`, so a blank that slipped through would fail as
-        an unmatched request rather than quietly fetching the whole country.
+        an unmatched request rather than quietly widening the query.
+
+        Matched against the blank message rather than the argument name, because XIT001 also
+        refuses a call that names no place at all, and that refusal names all three places. A
+        blank `area` has to be reported as the blank it is, since the remedy differs: a blank
+        is a value to correct, a missing place is an argument to add.
         """
-        with pytest.raises(ValueError, match=argument):
+        with pytest.raises(ValueError, match=f"Blank value for {argument}"):
             client.get_real_estate_prices(year=2024, **{argument: ""})
 
     @pytest.mark.parametrize(
@@ -814,7 +845,7 @@ class TestBlankArguments:
         request with no query string at all. `get_appraisal_reports` did not go through
         `_compact` and sent `area=` instead. Same argument, same blank, two behaviours.
         """
-        with pytest.raises(ValueError, match="area"):
+        with pytest.raises(ValueError, match="Blank value for area"):
             getattr(client, method_name)(**args)
 
     @pytest.mark.parametrize(

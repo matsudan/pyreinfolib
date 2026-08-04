@@ -128,14 +128,15 @@ def _join_unpadded_codes(name: str, codes: Sequence[str] | str | None) -> str | 
 def _compact(params: dict[str, Any]) -> dict[str, Any]:
     """Drop the arguments the caller left out, and refuse the ones left blank.
 
-    `None` is how an argument is omitted, and omitting a filter is a supported request: the
-    only required argument of most endpoints is the period, so leaving `city` out asks for the
-    whole country on purpose.
+    `None` is how an argument is omitted, and omitting a filter is a supported request: most
+    endpoints require nothing beyond a period or a tile, so leaving a filter out widens the
+    query on purpose. Which arguments an endpoint cannot do without is its own method's
+    business; XIT001, for one, needs at least one of `area`, `city` and `station`.
 
-    A blank value is not another way to say that. It used to be dropped as though it were
-    `None`, which meant `city=""` quietly widened a query to the whole country, a blank
-    required argument disappeared from the request altogether, and an empty list of codes read
-    as no filter at all. None of the three announced itself.
+    A blank value is not another way to omit an argument. It used to be dropped as though it
+    were `None`, which meant `city=""` quietly widened a query, a blank required argument
+    disappeared from the request altogether, and an empty list of codes read as no filter at
+    all. None of the three announced itself.
 
     Values are compared against `""` rather than tested for truthiness. `x=0` is a valid tile
     coordinate, and a future parameter whose valid values include `0` would otherwise vanish
@@ -321,7 +322,11 @@ class Client:
         station: str | None = None,
         language: Literal["ja", "en"] | None = None,
     ) -> RealEstatePricesResponse:
-        """Get real estate prices. See https://www.reinfolib.mlit.go.jp/help/apiManual/#titleApi4 for details.
+        """Get real estate prices.
+
+        Takes a place as well as a period: at least one of `area`, `city` and `station` is
+        required. There is no whole-country query.
+        See https://www.reinfolib.mlit.go.jp/help/apiManual/#titleApi4 for details.
         :param price_classification: Price classification.
           If not specified, both real estate transaction prices and contract prices.
         :param year: Transaction period (Year).
@@ -331,7 +336,8 @@ class Client:
         :param station: Station code. See https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-N02-v3_1.html
         :param language: `ja` or `en`. If not specified, `ja`.
         :return: Real estate prices.
-        :raises ValueError: If an argument is blank. Leave it out instead, to omit it.
+        :raises ValueError: If `area`, `city` and `station` are all omitted, or an argument is
+          blank. Leave an argument out instead, to omit it.
         :raises NoResultsError: If no transaction matches the given period and area.
         """
         params = _compact(
@@ -345,6 +351,18 @@ class Client:
                 "language": language,
             }
         )
+
+        # Refused on the manual's word, as `z` and a padded code are. Its parameter table marks
+        # all three of these required unless one of the other two is given, and says nothing
+        # about what a query carrying none of them returns.
+        #
+        # After `_compact`, so that `city=""` is reported as the blank it is. A key is present
+        # here only if the caller passed a non-`None` value for it.
+        if not {"area", "city", "station"} & params.keys():
+            raise ValueError(
+                "At least one of `area`, `city` and `station` is required. XIT001 takes no "
+                "query for the whole country, so `year` on its own is not one it documents."
+            )
 
         return self._get("XIT001", params)
 

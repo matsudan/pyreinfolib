@@ -36,7 +36,8 @@ def construction() -> None:
 
 
 def non_tile_endpoints(client: Client) -> None:
-    client.get_real_estate_prices(year=2024)
+    # A place as well as a period, XIT001 taking at least one of `area`, `city` and `station`.
+    client.get_real_estate_prices(year=2024, city="13109")
     client.get_real_estate_prices(
         year=2024,
         quarter=1,
@@ -323,11 +324,16 @@ def rejected_by_the_checker(client: Client) -> None:
     )
     client.get_real_estate_prices(
         year=2024,
+        city="13109",
         price_classification=LandPriceClassification.LAND_MARKET_VALUE_PUBLICATION,  # ty: ignore[invalid-argument-type]
     )
 
     # A bare code string is no longer accepted for a parameter that has an enum.
-    client.get_real_estate_prices(year=2024, price_classification="01")  # ty: ignore[invalid-argument-type]
+    client.get_real_estate_prices(
+        year=2024,
+        city="13109",
+        price_classification="01",  # ty: ignore[invalid-argument-type]
+    )
 
     # The point helpers are keyword only, so a longitude and a latitude cannot be swapped by
     # passing them positionally.
@@ -342,7 +348,7 @@ def rejected_by_the_checker(client: Client) -> None:
     # Assigned to `_` rather than passed to `print`. These lines exist only to be type checked,
     # and `_ =` says so; `print` also drew a CodeQL clear-text-logging alert on the fields whose
     # names read as personal data, which several of these types have.
-    record = client.get_real_estate_prices(year=2024)["data"][0]
+    record = client.get_real_estate_prices(year=2024, city="13109")["data"][0]
     _ = record["TradePirce"]  # ty: ignore[invalid-key]
 
     # A key that belongs to a different endpoint. XIT001 spells the municipality code
