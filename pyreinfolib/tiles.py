@@ -64,14 +64,14 @@ def _check_lon(lon: float) -> None:
 
 
 def _check_lat(lat: float) -> None:
-    # Rejecting rather than clamping. A latitude outside this range is either a point Web
-    # Mercator cannot place, or -- far more likely for this API -- a longitude passed as a
-    # latitude, since Japan spans 122E to 154E and every one of those is out of range here.
+    # Rejecting rather than clamping: a value out of range is a mistake to report, not a point
+    # to move to the nearest one that can be placed.
     if not -MAX_LATITUDE <= lat <= MAX_LATITUDE:
         raise ValueError(
             f"`lat` must be between {-MAX_LATITUDE} and {MAX_LATITUDE}, got {lat}. "
-            "Web Mercator cannot represent latitudes beyond that. If this was meant to be a "
-            "longitude, note that `containing` takes keyword arguments."
+            "Web Mercator cannot represent latitudes beyond that. Check whether a longitude "
+            "reached a latitude argument: Japan spans 122E to 154E, and every one of those is "
+            "out of range for a latitude."
         )
 
 
@@ -137,6 +137,12 @@ def _corner_tiles(west: float, south: float, east: float, north: float, z: int) 
     )
 
 
+def _tiles_between(top_left: Tile, bottom_right: Tile) -> Iterator[Tile]:
+    for y in range(top_left.y, bottom_right.y + 1):
+        for x in range(top_left.x, bottom_right.x + 1):
+            yield Tile(top_left.z, x, y)
+
+
 def covering(*, west: float, south: float, east: float, north: float, z: int) -> Iterator[Tile]:
     """Yield every tile that overlaps a bounding box, row by row from the north-west corner.
 
@@ -156,12 +162,16 @@ def covering(*, west: float, south: float, east: float, north: float, z: int) ->
     :param z: Zoom level.
     :return: The covering tiles.
     :raises ValueError: If the box is inverted, or an edge is outside the projected world.
+      Raised by this call, before any tile is yielded, so a `try` around the loop is not where
+      it lands.
     """
+    # Yielding is delegated so that this stays an ordinary function and the box is checked by
+    # the call the caller wrote. A generator body does not run until the first tile is asked
+    # for, which would put the `ValueError` wherever the iteration happens to be -- inside a
+    # worker, or in a loop whose `try` is there for the request rather than for the box.
     top_left, bottom_right = _corner_tiles(west, south, east, north, z)
 
-    for y in range(top_left.y, bottom_right.y + 1):
-        for x in range(top_left.x, bottom_right.x + 1):
-            yield Tile(z, x, y)
+    return _tiles_between(top_left, bottom_right)
 
 
 def count_covering(*, west: float, south: float, east: float, north: float, z: int) -> int:
