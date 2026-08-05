@@ -1,3 +1,4 @@
+import math
 from collections.abc import Iterator
 
 import pytest
@@ -9,9 +10,9 @@ from pyreinfolib.tiles import MAX_LATITUDE, Bounds, Tile, bounds, containing, co
 
 BASE_URL = "https://www.reinfolib.mlit.go.jp/ex-api/external/"
 
-# Tile coordinates lifted from the API manual's own examples, by way of the client tests.
-# These are the only external check available on the grid convention, so they anchor
-# everything else here.
+# Tile coordinates lifted from the API manual's own examples, by way of the client tests. The
+# scheme is 地理院タイル's, which the manual links; these check that the arithmetic here lands
+# where the API's own examples do, so they anchor everything else.
 REFERENCE_TILES = [
     Tile(z=11, x=1819, y=806),
     Tile(z=13, x=7312, y=3008),
@@ -38,8 +39,8 @@ class TestContaining:
     def test_it_reproduces_the_tiles_used_in_the_api_manual(self, tile):
         """Asking for the centre of a known tile must give that tile back.
 
-        This is the check that the grid convention matches the API's, rather than merely
-        being self-consistent.
+        The one check here that reaches outside this library. The round trip below holds for any
+        self-consistent grid, including a wrong one.
         """
         centre = bounds(tile)
         lon = (centre.west + centre.east) / 2
@@ -95,6 +96,12 @@ class TestContaining:
 
 
 class TestContainingRejectsBadInput:
+    def test_the_latitude_limit_is_where_the_projected_world_is_square(self):
+        """国土地理院 gives the cut-off as 約85.0511 度, and rounding to that would move the edge of
+        the grid. The value in full is the latitude whose Mercator y is half the world's width.
+        """
+        assert MAX_LATITUDE == pytest.approx(math.degrees(math.atan(math.sinh(math.pi))))
+
     @pytest.mark.parametrize("lat", [90.0, 86.0, -86.0, -90.0], ids=str)
     def test_latitudes_web_mercator_cannot_place(self, lat):
         with pytest.raises(ValueError, match="lat"):

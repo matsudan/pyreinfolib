@@ -4,10 +4,13 @@ Most of the published API is addressed by tile coordinates rather than by place,
 holding a latitude and longitude cannot reach those endpoints without this conversion. Every
 user of them would otherwise write the same arithmetic.
 
-The grid is the standard slippy map scheme: Web Mercator, with `y` counted from the north
-edge rather than the south. The API manual says only "XYZ" without naming the convention, but
-inverting the tile coordinates it uses in its own examples lands in Japan under this reading
-and in the southern hemisphere under TMS.
+The grid is 地理院タイル's. Every tile endpoint's manual page links 国土地理院's tile coordinate page
+for it, and 国土地理院 defines the scheme as Mercator with everything beyond ±85.0511 degrees
+dropped, so that what is left projects to a square: zoom 0 is that square as a single tile, each
+further level splits every tile into four, and (0, 0) is the north-west corner, with `x` counted
+east and `y` counted south. Counting `y` from the north is what separates the scheme from TMS.
+
+See https://maps.gsi.go.jp/development/siyou.html
 
 Nothing here needs a `Client`, an API key or a network, so these are plain functions.
 
@@ -21,8 +24,9 @@ import math
 from collections.abc import Iterator
 from typing import NamedTuple
 
-# Web Mercator cannot reach the poles: the projection runs to infinity as latitude approaches
-# ±90. This is the conventional cut-off, the latitude at which the projected world is square.
+# The latitude at which the projected world is square, which is where 国土地理院 cuts the grid
+# off. It gives the figure as 約85.0511 度; this is atan(sinh(π)) in degrees, the value in full.
+# Beyond it the projection runs to infinity, so the poles are outside the grid entirely.
 MAX_LATITUDE = 85.0511287798
 
 
