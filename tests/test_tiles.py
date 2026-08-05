@@ -211,12 +211,40 @@ class TestCovering:
 
     @pytest.mark.parametrize("call", [covering, count_covering], ids=["covering", "count_covering"])
     def test_an_inverted_box_is_rejected(self, call):
-        """Silently swapping the edges would hide a caller's mistake behind plausible data."""
+        """Silently swapping the edges would hide a caller's mistake behind plausible data.
+
+        Not wrapped in `list`, so this also pins where `covering` raises. Consuming the result
+        first would let the check sit in a generator body and still pass.
+        """
         with pytest.raises(ValueError, match="west"):
-            list(call(west=139.9, south=35.5, east=139.5, north=35.9, z=13))
+            call(west=139.9, south=35.5, east=139.5, north=35.9, z=13)
 
         with pytest.raises(ValueError, match="south"):
-            list(call(west=139.5, south=35.9, east=139.9, north=35.5, z=13))
+            call(west=139.5, south=35.9, east=139.9, north=35.5, z=13)
+
+    @pytest.mark.parametrize(
+        ("box", "expected"),
+        [
+            ({"west": 139.5, "south": 35.5, "east": 139.9, "north": 86.0}, "lat"),
+            ({"west": 139.5, "south": -86.0, "east": 139.9, "north": 35.9}, "lat"),
+            ({"west": -180.1, "south": 35.5, "east": 139.9, "north": 35.9}, "lon"),
+            ({"west": 139.5, "south": 35.5, "east": 180.1, "north": 35.9}, "lon"),
+        ],
+        ids=["north past the limit", "south past the limit", "west off the world", "east off the world"],
+    )
+    def test_an_edge_outside_the_projected_world_is_rejected_by_the_call(self, box, expected):
+        """These reach `covering` through `containing` rather than through `_corner_tiles`'s own
+        checks, so they need pinning separately from the inverted box.
+        """
+        with pytest.raises(ValueError, match=expected):
+            covering(**box, z=13)
+
+        with pytest.raises(ValueError, match=expected):
+            count_covering(**box, z=13)
+
+    def test_a_negative_zoom_is_rejected_by_the_call(self):
+        with pytest.raises(ValueError, match="z"):
+            covering(west=139.5, south=35.5, east=139.9, north=35.9, z=-1)
 
 
 class TestTile:
