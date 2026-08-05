@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.8.0](https://github.com/matsudan/pyreinfolib/compare/v0.7.1...v0.8.0) (2026-08-05)
+
+
+### ⚠ BREAKING CHANGES
+
+* `get_real_estate_prices` now requires at least one of `area`, `city` and `station`. A call that passes only `year` raises `ValueError` instead of issuing a request. Pass a prefecture code, a municipality code or a station code to say where to look.
+
+### Bug Fixes
+
+* correct the response types against live responses ([#75](https://github.com/matsudan/pyreinfolib/issues/75)) ([12aeb5c](https://github.com/matsudan/pyreinfolib/commit/12aeb5cfc2d60109d96e9f893ee3260594a7dfb7))
+* require a place on the real estate price query ([#79](https://github.com/matsudan/pyreinfolib/issues/79)) ([8c15fc5](https://github.com/matsudan/pyreinfolib/commit/8c15fc51b368a308fce37e547f8c896bf74a275c))
+* validate a covering box at the call ([#81](https://github.com/matsudan/pyreinfolib/issues/81)) ([357cf1f](https://github.com/matsudan/pyreinfolib/commit/357cf1ff9a8f79e0d8dca2c47835ee8f01524c1f))
+
+
+### Documentation
+
+* cite the tile scheme the manual points at ([#82](https://github.com/matsudan/pyreinfolib/issues/82)) ([5b1fe71](https://github.com/matsudan/pyreinfolib/commit/5b1fe71cda8feb92714610a9467224aac3ac6b30))
+* keep the checking record out of the docstrings ([#80](https://github.com/matsudan/pyreinfolib/issues/80)) ([b16b3f3](https://github.com/matsudan/pyreinfolib/commit/b16b3f3787377d7714d44cf378dcf87505a49e6b))
+* record what reading every endpoint's response showed ([#77](https://github.com/matsudan/pyreinfolib/issues/77)) ([f596f00](https://github.com/matsudan/pyreinfolib/commit/f596f005190544f4c8adce204eef9e2d48b3cd4e))
+
 ## [0.7.1](https://github.com/matsudan/pyreinfolib/compare/v0.7.0...v0.7.1) (2026-08-03)
 
 
