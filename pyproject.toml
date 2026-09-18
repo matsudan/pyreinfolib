@@ -56,7 +56,7 @@ dev = [
     # breaking changes, diagnostics included, can land between any two 0.0.x releases. A lower
     # bound would let a patch update turn CI red without a change to this repository.
     # Dependabot proposes the bump; the diff gets read at that point.
-    "ty==0.0.65",
+    "ty==0.0.80",
 ]
 
 [tool.ruff]
