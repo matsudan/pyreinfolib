@@ -4,11 +4,10 @@
 [![Python versions](https://img.shields.io/pypi/pyversions/pyreinfolib)](https://pypi.org/project/pyreinfolib/)
 [![ci](https://github.com/matsudan/pyreinfolib/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/matsudan/pyreinfolib/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/pypi/l/pyreinfolib)](https://github.com/matsudan/pyreinfolib/blob/main/LICENSE)
-[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
-国土交通省[不動産情報ライブラリ](https://www.reinfolib.mlit.go.jp/)APIサービスのPythonクライアントです。対応しているAPIは[Endpoints](#endpoints)にあります。
+国土交通省[不動産情報ライブラリ](https://www.reinfolib.mlit.go.jp/)APIサービスのPythonクライアントです。対応しているAPIは[Endpoints](#endpoints)に一覧があります。
 
-API仕様の詳細は[API操作説明ページ](https://www.reinfolib.mlit.go.jp/help/apiManual/)をご参照ください。APIキーは[API利用申請](https://www.reinfolib.mlit.go.jp/api/request/)で取得します。
+API仕様の詳細は[API操作説明ページ](https://www.reinfolib.mlit.go.jp/help/apiManual/)を参照してください。APIキーは[API利用申請](https://www.reinfolib.mlit.go.jp/api/request/)で取得します。
 
 ## Installation
 
@@ -32,7 +31,7 @@ for record in result["data"]:
     print(record["Type"], record["TradePrice"], record["Area"])
 ```
 
-APIの多くは地図のタイル座標を指定して取得します。緯度経度からの変換は `pyreinfolib.tiles` が行います。
+APIの多くは地図のタイル座標を指定して取得します。緯度経度からタイル座標への変換には `pyreinfolib.tiles` を使います。
 
 ```python
 from pyreinfolib import tiles
@@ -109,9 +108,9 @@ client.get_number_of_passengers_per_station(*tile)
 
 `Tile` は `z, x, y` の順なので、タイル系メソッドにそのまま展開して渡せます。
 
-引数は名前を付けて渡します（位置引数では渡せません）。緯度と経度はどちらも `float` なので、順序を取り違えても型では気づけないためです。
+引数はキーワード引数で渡します。緯度と経度はどちらも `float` なので、順序を取り違えても型では検出できないためです。
 
-受け付けるズームレベルはエンドポイントごとに違います。上の表の「ズーム」列を見てください。範囲外を渡すと、どのエンドポイントが何を期待しているかを含む `ValueError` になります。
+受け付けるズームレベルはエンドポイントごとに異なります。上の表の「ズーム」列を参照してください。範囲外を渡すと、該当エンドポイントが受け付ける範囲を示す `ValueError` になります。
 
 ### 指定範囲を覆うタイルの取得 (covering / count_covering)
 
@@ -124,7 +123,7 @@ for tile in tiles.covering(**box, z=15):
     client.get_real_estate_prices_point(*tile, period_from=20241, period_to=20242)
 ```
 
-ズーム15ではタイル1枚が約1km四方です。1タイルが1リクエストになるので、着手前に `count_covering()` で枚数を確認してください。引数は `covering()` と同じです。
+ズーム15ではタイル1枚が約1km四方です。1タイルにつき1リクエストになるので、実行前に `count_covering()` で枚数を確認してください。引数は `covering()` と同じです。
 
 | 範囲 | z=11 | z=13 | z=15 |
 |---|---|---|---|
@@ -168,7 +167,7 @@ client.get_real_estate_prices_point(
 )
 ```
 
-`price_classification` は API 上どちらも同じ名前ですが、コード体系が2つに分かれています。別の型にしてあるので取り違えは型チェックで検出されます。
+API 上の引数名はどちらも `price_classification` ですが、コード体系が異なります。別々の型にしてあるため、取り違えは型チェックで検出できます。
 
 | enum | 対象 | コード |
 |---|---|---|
@@ -188,7 +187,7 @@ client.get_welfare_facilities(
 client.get_disaster_history(z=9, x=227, y=100, disastertype_code=["11", "22"])
 ```
 
-災害分類コードは独立したコード表がないので、[XST001 のマニュアルページ](https://www.reinfolib.mlit.go.jp/help/apiManual/xst001/)か `get_disaster_history` の docstring を見てください。
+災害分類コードには独立したコード表がないため、[XST001 のマニュアルページ](https://www.reinfolib.mlit.go.jp/help/apiManual/xst001/)か `get_disaster_history` の docstring を参照してください。
 
 ### 都道府県コードの形式
 
@@ -200,17 +199,17 @@ client.get_disaster_history(z=9, x=227, y=100, disastertype_code=["11", "22"])
 | `get_landslide_prevention_districts` | XKT021 | 2桁 | `"09"` |
 | `get_steep_slope_failure_hazard_areas` | XKT022 | 2桁 | `"09"` |
 
-引数名も型も同じなので、渡す値からは区別が付きません。XKT019 に `"09"` を渡すと `ValueError` になりますが、**XKT021 と XKT022 に `"9"` を渡した場合は空のタイルが返り**、該当データがないタイルと見分けが付きません。
+引数名も型も同じため、値から形式を判別することはできません。XKT019 に `"09"` を渡すと `ValueError` になりますが、**XKT021 と XKT022 に `"9"` を渡した場合は空のタイルが返り**、該当データがないタイルと見分けが付きません。
 
 ### 引数の省略
 
 引数を省略するか `None` を渡すと、その絞り込みを行いません。`get_real_estate_prices(year=2024)` は全国が対象になります。
 
-**空文字は省略と同じ扱いになりません。** `ValueError` になります。フォームや環境変数の値をそのまま渡す場合は `city=value or None` としてください。コードのリストが空（`land_type_code=[]`）の場合も `ValueError` です。絞り込んだつもりで全件が返るのを防ぐためです。
+**空文字は省略とは見なされず、`ValueError` になります。** フォームや環境変数の値をそのまま渡す場合は `city=value or None` としてください。コードのリストが空（`land_type_code=[]`）の場合も `ValueError` です。絞り込んだつもりで全件が返るのを防ぐためです。
 
 ## Client configuration
 
-`Client` はコネクションを再利用します。タイル系APIを複数タイル分呼ぶ使い方では、TLSハンドシェイクが1回で済みます。使い終わったら `close()` するか、`with` を使ってください。
+`Client` はコネクションを再利用します。複数タイルを続けて取得する場合でも、TLSハンドシェイクは1回で済みます。使い終わったら `close()` するか、`with` を使ってください。
 
 ```python
 with Client(api_key=os.environ["REINFOLIB_API_KEY"]) as client:
@@ -219,7 +218,7 @@ with Client(api_key=os.environ["REINFOLIB_API_KEY"]) as client:
 
 ### リトライ
 
-スロットリング（HTTP 429）と一時的なサーバエラー（500、502、503、504）は自動で再試行します。APIはリクエスト数の上限を公開しておらず、間隔を空けて実行するよう案内しているため、429 は障害ではなく想定される応答です。
+スロットリング（HTTP 429）と一時的なサーバエラー（500、502、503、504）は自動で再試行します。APIはリクエスト数の上限を公開せず、間隔を空けて実行するよう案内しているため、429 は障害ではなく想定内の応答です。
 
 待ち時間は指数的に伸びます。既定の `max_retries=3` では 0秒、2秒、4秒の順に待ち、4回目で諦めて `RateLimitError` を送出します。APIが `Retry-After` を返した場合はそちらが優先されます。
 
@@ -228,7 +227,7 @@ with Client(api_key=os.environ["REINFOLIB_API_KEY"]) as client:
 client = Client(api_key=..., max_retries=0)
 ```
 
-検索結果0件（HTTP 404）は再試行しません。`timeout` は各試行を制限するもので、再試行の全体を制限するものではありません。
+検索結果0件（HTTP 404）は再試行しません。`timeout` は1回の試行ごとの制限で、再試行を含めた全体の制限ではありません。
 
 ## Error handling
 
@@ -272,7 +271,7 @@ except APIError as e:
 
 ## Typing
 
-型情報を同梱しています（[PEP 561](https://peps.python.org/pep-0561/)）。返り値の形は `pyreinfolib.types` に `TypedDict` で置いてあるので、キーの綴り間違いが型エラーになります。
+型情報を同梱しています（[PEP 561](https://peps.python.org/pep-0561/)）。返り値の型は `pyreinfolib.types` に `TypedDict` として定義してあり、キーの綴り間違いを型エラーとして検出できます。
 
 ```python
 prices = client.get_real_estate_prices(year=2024, city="13109")
@@ -301,19 +300,13 @@ districts: UseDistrictsResponse = client.get_use_districts(z=15, x=29099, y=1290
 | `Properties` | タイル系の1フィーチャの `properties` | `UseDistrictsProperties` |
 | `Item` | 都道府県・市区町村コードで取得するAPIの `data` の1要素 | `RealEstatePricesItem` |
 
-### 型を読むときの注意
+### 型定義の注意点
 
-**キーと値の型は API に合わせています。** 整えていないので、国土数値情報の属性コード（`A27_001`）、ローマ字（`kubun_id`）、`_ja` 接尾辞、XCT001 の日本語キー（スペース入り）、XPT002 の `proximity_to_transportation_facilitites`（API 側の綴り間違い）がそのまま出てきます。
-
-根拠はマニュアルの `＜出力＞` 表ですが、実レスポンスを確認できたものはそちらに従っています。XCT001 は表の109キーのうち63個が実物と違いました。
-
-値の型もマニュアルの宣言通りです。XIT001 は取引価格を含めて全フィールドが文字列型なので、`record["TradePrice"]` は `str` です。
-
-**どのキーが必ず来るかはマニュアルに記載がないため、全フィールドを省略可能として扱っています。** 読み取りは型チェックを通りますが、実行時に `KeyError` の可能性は残ります。
-
-`geometry` は6種のジオメトリの合併型です。`type` で絞り込んでから `coordinates` を読みます。**エンドポイントごとに1種類とは決まりません。** 7本は同一タイルで複数の形を返し、XKT029 は Polygon・MultiPolygon・LineString の3つが混在します。駅別乗降客数（XKT015）はプラットホームの線なので LineString です。
-
-**`crs` は座標を使う前に読んでください。** 図書館（XKT017）と自然公園地域（XKT019）だけ EPSG:4612（JGD2000）で、残りは EPSG:6668（JGD2011）です。この2本の座標は他と厳密には一致せず、差は東北で最も大きくなります。
+- **キー名と値の型は API のままです。** 国土数値情報の属性コード（`A27_001`）や日本語キーもそのまま現れます。XIT001 は取引価格を含む全フィールドが文字列なので、`record["TradePrice"]` は `str` です。
+- **すべてのキーを省略可能としています。** どのキーが必ず返るかはマニュアルに書かれていないためです。型チェックは通りますが、実行時に `KeyError` になる可能性があります。
+- **`geometry` は `None` の場合があり、型も複数あります。** 同じエンドポイントが複数の種類を返すこともあるため、`coordinates` を読む前に `type` で絞り込んでください。
+- **座標系は `crs` で確認できます。** 図書館（XKT017）と自然公園地域（XKT019）は EPSG:4612（JGD2000）、それ以外は EPSG:6668（JGD2011）です。他のデータと重ねる場合は注意してください。
+- **XKT013 の `properties` は `dict[str, Any]` です。** フィールド名が `PT01_20XX` のように年を含むためです。
 
 ```python
 for feature in client.get_schools(z=13, x=7269, y=3235)["features"]:
@@ -322,14 +315,12 @@ for feature in client.get_schools(z=13, x=7269, y=3235)["features"]:
         lon, lat = geometry["coordinates"][0], geometry["coordinates"][1]
 ```
 
-`get_population_projections_in_250m_grid_squares`（XKT013）だけは `properties` が `dict[str, Any]` です。`PT01_20XX` のようにフィールド名が年を含み、マニュアルがその年をプレースホルダで書いているためです。
-
 > [!NOTE]
 > 0.6.0 以前は全メソッドが `dict[str, Any]` を返していました。返り値を `dict[str, Any]` と型注釈していた場合、`TypedDict` は `dict[str, Any]` に代入できないため型チェックが落ちます。型注釈を外すか、対応する `...Response` に差し替えてください。実行時の挙動は変わりません。
 
 ## Contributing
 
-[CONTRIBUTING.md](CONTRIBUTING.md) に開発環境と命名規則、[GLOSSARY.md](GLOSSARY.md) に訳語と典拠があります。
+開発環境と命名規則は [CONTRIBUTING.md](CONTRIBUTING.md)、訳語とその典拠は [GLOSSARY.md](GLOSSARY.md) にまとめています。
 
 ## Author
 
