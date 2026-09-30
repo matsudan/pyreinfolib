@@ -302,25 +302,11 @@ districts: UseDistrictsResponse = client.get_use_districts(z=15, x=29099, y=1290
 
 ### 型定義の注意点
 
-型は API の出力をそのまま写したもので、Python 向けに整えてはいません。次の点に注意してください。
-
-#### キー名と値の型は API のまま
-
-キーは変換していないので、国土数値情報の属性コード（`A27_001`）、ローマ字（`kubun_id`）、`_ja` 接尾辞、XCT001 の日本語キー（スペース入り）などがそのまま現れます。XPT002 の `proximity_to_transportation_facilitites` は API 側の綴り間違いですが、これも直していません。
-
-値の型もマニュアルの宣言どおりです。たとえば XIT001 は取引価格を含む全フィールドが文字列なので、`record["TradePrice"]` は `str` です。
-
-型の根拠はマニュアルの `＜出力＞` 表です。ただし実レスポンスを確認できたものは、実際の形に合わせています。XCT001 では、表の109キーのうち63個が実際のレスポンスと異なっていました。
-
-#### すべてのキーは省略可能
-
-どのキーが必ず返るかはマニュアルに書かれていないため、すべてのキーを省略可能としています。型チェックは通りますが、実行時に `KeyError` になる可能性は残ります。
-
-#### `geometry` は `type` で絞り込む
-
-`geometry` は6種類のジオメトリの合併型で、`None` の場合もあります。`coordinates` を読む前に `type` で絞り込んでください。
-
-1つのエンドポイントが1種類のジオメトリだけを返すとは限りません。7つのエンドポイントは同じタイルの中で複数の種類を返し、XKT029 では Polygon・MultiPolygon・LineString の3種類が混在します。なお、駅別乗降客数（XKT015）はプラットホームを表す線なので LineString です。
+- **キー名と値の型は API のままです。** 国土数値情報の属性コード（`A27_001`）や日本語キーもそのまま現れます。XIT001 は取引価格を含む全フィールドが文字列なので、`record["TradePrice"]` は `str` です。
+- **すべてのキーを省略可能としています。** どのキーが必ず返るかはマニュアルに書かれていないためです。型チェックは通りますが、実行時に `KeyError` になる可能性があります。
+- **`geometry` は `None` の場合があり、型も複数あります。** 同じエンドポイントが複数の種類を返すこともあるため、`coordinates` を読む前に `type` で絞り込んでください。
+- **座標系は `crs` で確認できます。** 図書館（XKT017）と自然公園地域（XKT019）は EPSG:4612（JGD2000）、それ以外は EPSG:6668（JGD2011）です。他のデータと重ねる場合は注意してください。
+- **XKT013 の `properties` は `dict[str, Any]` です。** フィールド名が `PT01_20XX` のように年を含むためです。
 
 ```python
 for feature in client.get_schools(z=13, x=7269, y=3235)["features"]:
@@ -328,14 +314,6 @@ for feature in client.get_schools(z=13, x=7269, y=3235)["features"]:
     if geometry is not None and geometry["type"] == "Point":
         lon, lat = geometry["coordinates"][0], geometry["coordinates"][1]
 ```
-
-#### 座標を使う前に `crs` を確認する
-
-座標系は、図書館（XKT017）と自然公園地域（XKT019）が EPSG:4612（JGD2000）、それ以外は EPSG:6668（JGD2011）です。この2つの座標は他のエンドポイントと厳密には一致せず、ずれは東北で最も大きくなります。他のデータと重ねる場合は、`crs` を確認してください。
-
-#### XKT013 の `properties` は型付けしていない
-
-`get_population_projections_in_250m_grid_squares`（XKT013）だけは、`properties` を `dict[str, Any]` としています。フィールド名が `PT01_20XX` のように年を含み、マニュアルもその年をプレースホルダで書いているためです。
 
 > [!NOTE]
 > 0.6.0 以前は全メソッドが `dict[str, Any]` を返していました。返り値を `dict[str, Any]` と型注釈していた場合、`TypedDict` は `dict[str, Any]` に代入できないため型チェックが落ちます。型注釈を外すか、対応する `...Response` に差し替えてください。実行時の挙動は変わりません。
