@@ -2,7 +2,7 @@
 
 メソッド名・引数名・enum 名に使う訳語と典拠です。命名の手順は [CONTRIBUTING.md](CONTRIBUTING.md#命名) にあります。
 
-**訳語を発明しないでください。** ここにない語は、下記の典拠を順に当たって決めてください。
+ここにない語は、下記の典拠を順に当たって決めてください。
 
 ## 典拠の優先順位
 
@@ -29,7 +29,7 @@
 
 ## 典拠のどこにも訳語がないとき
 
-次の順に試します。**どの場合も訳語を発明せず、どの段階で決めたか、空振りした当たり先も残してください。**
+次の順に試します。**どの段階で決めたか、空振りした当たり先も残してください。**
 
 1. **その語を名前にしない。** コード表なら `str` のままにできます（[enum / `Literal` / `str`](CONTRIBUTING.md#enum)）。メソッド名では使えません
 2. **典拠のある部品から合成する。** 根拠法自身の造語パターンに従い、部品のどちらかに典拠がなければ使いません。例: 都市計画道路、浸水想定区域
@@ -100,9 +100,7 @@
 | 河川法 | River Act | 同条 |
 | 海岸保全区域 | coastal preservation zone | 同条 |
 
-用途地域の内訳（13種）も建築基準法から取れます。第一種低層住居専用地域 = category 1 low-rise exclusive residential district、準住居地域 = quasi-residential district、田園住居地域 = countryside residential district、準工業地域 = quasi-industrial district、工業専用地域 = exclusive industrial district、ほか。
-
-用途地域の内訳（13種）も建築基準法から取れます。第一種低層住居専用地域 = category 1 low-rise exclusive residential district、準住居地域 = quasi-residential district、田園住居地域 = countryside residential district、準工業地域 = quasi-industrial district、工業専用地域 = exclusive industrial district、ほか。
+用途地域の内訳も建築基準法から取れます。第一種低層住居専用地域 = category 1 low-rise exclusive residential district、準住居地域 = quasi-residential district、田園住居地域 = countryside residential district、準工業地域 = quasi-industrial district、工業専用地域 = exclusive industrial district、ほか。
 
 ## 個別の判断
 
@@ -124,7 +122,3 @@
 **将来推計人口250mメッシュ** は `get_population_projections_in_250m_grid_squares` です。`将来` は `projections` が含意します（同研究所も落としています）。`250m` は API 名に合わせ、地図のラベルの `250-meter` にはしません。
 
 **用途地域と用途区分は別の語彙です。** XCT001 の `division`（`UseDivision`）は地価公示の用途区分で、都市計画法の用途地域ではありません。準工業**地**（`QUASI_INDUSTRIAL_LAND`）は準工業**地域**（quasi-industrial district）ではなく、現況林地・宅地見込地も用途地域にありません。用語集を当てて district に直さないでください。
-
-## 未確定
-
-現在ありません。
