@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.8.1](https://github.com/matsudan/pyreinfolib/compare/v0.8.0...v0.8.1) (2026-10-06)
+
+
+### Documentation
+
+* polish the README wording ([#95](https://github.com/matsudan/pyreinfolib/issues/95)) ([7d3f890](https://github.com/matsudan/pyreinfolib/commit/7d3f890cefe4edc8ea9683d7eac62adf31120281))
+* remove redundant wording from CONTRIBUTING and GLOSSARY ([#98](https://github.com/matsudan/pyreinfolib/issues/98)) ([83ec320](https://github.com/matsudan/pyreinfolib/commit/83ec32043161841ef95e96c8ae2e4d8d334b27c8))
+* trim CONTRIBUTING and GLOSSARY ([#97](https://github.com/matsudan/pyreinfolib/issues/97)) ([7f52a7f](https://github.com/matsudan/pyreinfolib/commit/7f52a7faca549275bed4c42573fbb11628c705af))
+
 ## [0.8.0](https://github.com/matsudan/pyreinfolib/compare/v0.7.1...v0.8.0) (2026-08-05)
 
 
