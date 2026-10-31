@@ -323,14 +323,15 @@ class Client:
 
         Takes a place as well as a period: at least one of `area`, `city` and `station` is
         required. There is no whole-country query.
-        See https://www.reinfolib.mlit.go.jp/help/apiManual/#titleApi4 for details.
+        See https://www.reinfolib.mlit.go.jp/help/apiManual/xit001/ for details.
         :param price_classification: Price classification.
           If not specified, both real estate transaction prices and contract prices.
         :param year: Transaction period (Year).
         :param quarter: Transaction period (Quarter). 1: Jan.~Mar. 2: Apr.~Jun. 3: Jul.~Sep. 4: Oct.~Dec.
-        :param area: Prefecture code. See https://nlftp.mlit.go.jp/ksj/gml/codelist/PrefCd.html
+        :param area: Prefecture code. Format: NN, so `09` rather than `9`.
+          See https://nlftp.mlit.go.jp/ksj/gml/codelist/PrefCd.html
         :param city: Municipality code.
-        :param station: Station code. See https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-N02-v3_1.html
+        :param station: Station code. See https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-N02-2025.html
         :param language: `ja` or `en`. If not specified, `ja`.
         :return: Real estate prices.
         :raises ValueError: If `area`, `city` and `station` are all omitted, or an argument is
@@ -365,8 +366,9 @@ class Client:
 
     def get_municipalities(self, area: str, language: Literal["ja", "en"] | None = None) -> MunicipalitiesResponse:
         """Get municipality (city/ward/town/village) list.
-        See https://www.reinfolib.mlit.go.jp/help/apiManual/#titleApi5 for details.
-        :param area: Prefecture code. See https://nlftp.mlit.go.jp/ksj/gml/codelist/PrefCd.html
+        See https://www.reinfolib.mlit.go.jp/help/apiManual/xit002/ for details.
+        :param area: Prefecture code. Format: NN, so `09` rather than `9`.
+          See https://nlftp.mlit.go.jp/ksj/gml/codelist/PrefCd.html
         :param language: `ja` or `en`. If not specified, `ja`.
         :return: Municipality list.
         :raises ValueError: If `area` is blank.
@@ -378,9 +380,10 @@ class Client:
 
     def get_appraisal_reports(self, year: int, area: str, division: enums.UseDivision) -> AppraisalReportsResponse:
         """Get real estate appraisal reports.
-        See https://www.reinfolib.mlit.go.jp/help/apiManual/#titleApi6 for details.
+        See https://www.reinfolib.mlit.go.jp/help/apiManual/xct001/ for details.
         :param year: Date of value.
-        :param area: Prefecture code.
+        :param area: Prefecture code. Format: NN, so `09` rather than `9`.
+          See https://nlftp.mlit.go.jp/ksj/gml/codelist/PrefCd.html
         :param division: Use division.
         :return: Real estate appraisal reports.
         :raises ValueError: If `area` is blank.
@@ -403,7 +406,7 @@ class Client:
         land_type_code: Sequence[enums.LandTypeCode] | enums.LandTypeCode | None = None,
     ) -> RealEstatePricesPointResponse:
         """Get real estate prices point.
-        See https://www.reinfolib.mlit.go.jp/help/apiManual/#titleApi7 for details.
+        See https://www.reinfolib.mlit.go.jp/help/apiManual/xpt001/ for details.
         :param z: Zoom level (scale). 11 (city) ~ 15 (detail)
         :param x: x value of tile coordinates.
         :param y: y value of tile coordinates.
@@ -412,7 +415,7 @@ class Client:
         :param price_classification: Price classification.
           If not specified, both real estate transaction prices and contract prices.
         :param land_type_code: One land type code, or a sequence of them.
-          See https://www.reinfolib.mlit.go.jp/help/apiManual/#titleApi7
+          See https://www.reinfolib.mlit.go.jp/help/apiManual/xpt001/
         :return: Real estate prices point. (Response format: GeoJson)
         :raises ValueError: If `z` is not between 11 and 15, or `land_type_code` is empty.
         """
@@ -444,7 +447,7 @@ class Client:
         Both surveys are published on this endpoint. `price_classification` selects one, or
         leave it unset for both. The publication values market values of standard sites; the
         research values the standard sites published by prefectural governments.
-        See https://www.reinfolib.mlit.go.jp/help/apiManual/#titleApi8 for details.
+        See https://www.reinfolib.mlit.go.jp/help/apiManual/xpt002/ for details.
         :param z: Zoom level (scale). 13 ~ 15 (detail)
         :param x: x value of tile coordinates.
         :param y: y value of tile coordinates.
@@ -454,7 +457,7 @@ class Client:
           the real estate price endpoints take. If not specified, both the publication and
           the prefectural research.
         :param use_category_code: One use division code, or a sequence of them.
-          See https://www.reinfolib.mlit.go.jp/help/apiManual/#titleApi8
+          See https://www.reinfolib.mlit.go.jp/help/apiManual/xpt002/
         :return: Land market value publication and land market value research point.
           (Response format: GeoJson)
         :raises ValueError: If `z` is not between 13 and 15, or `use_category_code` is empty.
