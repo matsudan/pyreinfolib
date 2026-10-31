@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.1](https://github.com/matsudan/pyreinfolib/compare/v0.9.0...v0.9.1) (2026-10-31)
+
+
+### Documentation
+
+* clarify documentation and add an English README ([#116](https://github.com/matsudan/pyreinfolib/issues/116)) ([aa1dcad](https://github.com/matsudan/pyreinfolib/commit/aa1dcad472c6a4321d0e09505d094590fe4a043b))
+
 ## [0.9.0](https://github.com/matsudan/pyreinfolib/compare/v0.8.0...v0.9.0) (2026-10-31)
 
 
