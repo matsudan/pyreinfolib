@@ -11,13 +11,13 @@
 
 API 仕様は[API操作説明](https://www.reinfolib.mlit.go.jp/help/apiManual/)を参照してください。API キーは[API利用申請](https://www.reinfolib.mlit.go.jp/api/request/)で取得します。
 
-## インストール
+## Installation
 
 ```shell
 pip install pyreinfolib
 ```
 
-## クイックスタート
+## Quick start
 
 ```python
 import os
@@ -45,7 +45,7 @@ for feature in client.get_use_districts(*tile)["features"]:
 ```
 
 <a id="endpoints"></a>
-## 対応エンドポイント
+## Endpoints
 
 ### タイル座標を使わない API
 
@@ -99,7 +99,7 @@ XIT001 では `year` と、`area`・`city`・`station` のいずれか1つ以上
 
 引数の形式とコード表は各メソッドの docstring に記載しています。
 
-## タイル座標
+## Tile coordinates
 
 ### 点を含むタイル（`containing`）
 
@@ -138,7 +138,7 @@ tiles.bounds(tile)
 
 `Bounds` は GeoJSON の bbox と同じく west, south, east, north の順です。
 
-## 絞り込み
+## Filtering
 
 ### コードを使う引数
 
@@ -205,7 +205,7 @@ client.get_disaster_history(z=9, x=227, y=100, disastertype_code=["11", "22"])
 
 空文字は省略として扱わず、`ValueError` を送出します。フォームや環境変数の値を渡す場合は `city=value or None` としてください。空のコード列（`land_type_code=[]` など）も、意図せず全件を取得するのを防ぐため `ValueError` になります。
 
-## Client の設定
+## Client configuration
 
 `Client` は可能な範囲で接続を再利用します。使い終わったら `close()` を呼ぶか、`with` 文を使ってください。
 
@@ -227,7 +227,7 @@ client = Client(api_key=..., max_retries=0)
 
 検索結果0件（HTTP 404）は再試行しません。`timeout` は各試行の制限で、再試行を含む全体の制限ではありません。
 
-## 例外処理
+## Error handling
 
 通信または API 応答に関する例外は `ReinfolibError` を継承しているため、`requests` を import せずに捕捉できます。引数の不備は `ValueError` になります。
 
@@ -267,7 +267,7 @@ except APIError as e:
     print(e.status_code, e.response_body, e.url)
 ```
 
-## 型情報
+## Typing
 
 型情報を同梱しています（[PEP 561](https://peps.python.org/pep-0561/)）。返り値は `pyreinfolib.types` の `TypedDict` で表し、存在しないキーへのアクセスを型エラーとして検出できます。
 
@@ -313,10 +313,10 @@ for feature in client.get_schools(z=13, x=7269, y=3235)["features"]:
         lon, lat = geometry["coordinates"][0], geometry["coordinates"][1]
 ```
 
-## コントリビューション
+## Contributing
 
 開発手順と命名規則は [CONTRIBUTING.md](https://github.com/matsudan/pyreinfolib/blob/main/CONTRIBUTING.md)、訳語と典拠は [GLOSSARY.md](https://github.com/matsudan/pyreinfolib/blob/main/GLOSSARY.md) にあります。
 
-## 作者
+## Author
 
 @matsudan (daaamatsun@gmail.com)
