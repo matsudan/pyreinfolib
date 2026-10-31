@@ -90,6 +90,7 @@ for feature in client.get_use_districts(*tile)["features"]:
 | 人口集中地区 | `get_densely_inhabited_districts` | XKT031 | 9〜15 | `administrative_area_code` |
 | 指定緊急避難場所 | `get_designated_emergency_evacuation_sites` | XGT001 | 11〜15 | — |
 | 災害履歴 | `get_disaster_history` | XST001 | 9〜15 | `disastertype_code` |
+| 特別注視区域 | `get_special_monitored_areas` | XNT001 | 11〜15 | — |
 
 各メソッドの docstring に、引数の形式とコード表へのリンクがあります。
 

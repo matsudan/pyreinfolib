@@ -1153,3 +1153,15 @@ class DesignatedEmergencyEvacuationSitesProperties(TileProperties, total=False):
 
 
 DesignatedEmergencyEvacuationSitesResponse = FeatureCollection[DesignatedEmergencyEvacuationSitesProperties]
+
+
+class SpecialMonitoredAreasProperties(TileProperties, total=False):
+    """One feature's `properties` from XNT001, 内閣府重要土地等調査法（特別注視区域）API.
+
+    See https://www.reinfolib.mlit.go.jp/help/apiManual/xnt001/
+    """
+
+    NAME: str  # 特別注視区域名
+
+
+SpecialMonitoredAreasResponse = FeatureCollection[SpecialMonitoredAreasProperties]

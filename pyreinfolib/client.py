@@ -41,6 +41,7 @@ from pyreinfolib.types import (
     RealEstatePricesResponse,
     SchoolsResponse,
     SedimentDisasterAlertAreasResponse,
+    SpecialMonitoredAreasResponse,
     SteepSlopeFailureHazardAreasResponse,
     UseDistrictsResponse,
     WelfareFacilitiesResponse,
@@ -1133,3 +1134,20 @@ class Client:
             # As wide as XKT019 and XKT031.
             zoom_levels=range(9, 16),
         )
+
+    def get_special_monitored_areas(self, z: int, x: int, y: int) -> SpecialMonitoredAreasResponse:
+        """Get special monitored areas (特別注視区域).
+
+        A special monitored area is a monitored area (注視区域) that the Prime Minister has
+        designated because an important facility or remote territorial island in it is of
+        particular importance. A contract transferring land of 200 square meters or more in
+        one, or a building of that floor area, has to be notified to the Prime Minister in
+        advance.
+        See https://www.reinfolib.mlit.go.jp/help/apiManual/xnt001/ for details.
+        :param z: Zoom level (scale). 11 (city) ~ 15 (detail)
+        :param x: x value of tile coordinates.
+        :param y: y value of tile coordinates.
+        :return: Special monitored areas. (Response format: GeoJson)
+        :raises ValueError: If `z` is not between 11 and 15.
+        """
+        return self._get_tile("XNT001", z, x, y)
