@@ -82,6 +82,7 @@ def tile_endpoints_from_a_point(client: Client) -> None:
     client.get_large_scale_developed_embankments(*tile)
     client.get_liquefaction_tendency_based_on_topographical_classification(*tile)
     client.get_disaster_history(*tile)
+    client.get_special_monitored_areas(*tile)
     client.get_location_normalization_plans(*tile)
 
 

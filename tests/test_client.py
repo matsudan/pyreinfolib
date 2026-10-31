@@ -986,6 +986,7 @@ TILE_ONLY_ENDPOINTS = [
     ("get_city_planning_roads", "XKT030", range(11, 16)),
     ("get_designated_emergency_evacuation_sites", "XGT001", range(11, 16)),
     ("get_liquefaction_tendency_based_on_topographical_classification", "XKT025", range(11, 16)),
+    ("get_special_monitored_areas", "XNT001", range(11, 16)),
 ]
 TILE_ONLY_ENDPOINT_IDS = [endpoint for _, endpoint, _ in TILE_ONLY_ENDPOINTS]
 

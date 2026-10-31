@@ -99,6 +99,7 @@
 | 砂防法 | Erosion Control Act | 自然環境保全法施行規則19条1項 |
 | 河川法 | River Act | 同条 |
 | 海岸保全区域 | coastal preservation zone | 同条 |
+| 特別注視区域 | special monitored area | 重要施設周辺及び国境離島等における土地等の利用状況の調査及び利用の規制等に関する法律12条1項（[laws/view/3966](https://www.japaneselawtranslation.go.jp/ja/laws/view/3966/je)） |
 
 用途地域の内訳も建築基準法から取れます。第一種低層住居専用地域 = category 1 low-rise exclusive residential district、準住居地域 = quasi-residential district、田園住居地域 = countryside residential district、準工業地域 = quasi-industrial district、工業専用地域 = exclusive industrial district、ほか。
 
