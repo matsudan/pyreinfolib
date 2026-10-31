@@ -37,12 +37,15 @@ def declared_types(page: str, endpoint: str) -> dict[str, str]:
     `<td` is part of the pattern rather than incidental. The column headings carry the same ids
     with no row number, in `<th>` cells, so dropping the tag name would pick up タグ名 as a
     field called データ型.
+
+    A row with no data type is not a field. XKT015 ends its table with a 以下略 row in the tag
+    column and the other cells empty.
     """
     tags: dict[str, str] = {}
     types: dict[str, str] = {}
     for cell, kind, value in re.findall(rf'<td id="api{endpoint}(\w*)(Tag|DataType)"[^>]*>([^<]*)<', page):
         (tags if kind == "Tag" else types)[cell] = value
-    return {tags[cell]: DECLARED_TYPES[types[cell]] for cell in tags if cell in types}
+    return {tags[cell]: DECLARED_TYPES[types[cell]] for cell in tags if types.get(cell)}
 
 
 def report(endpoint: str, expected: dict[str, str], records: list[dict]) -> list[str]:

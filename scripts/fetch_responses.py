@@ -34,13 +34,16 @@ SECONDS_BETWEEN_REQUESTS = 2
 
 
 def manual_page(endpoint: str, workdir: pathlib.Path) -> str:
-    """The endpoint's manual page, downloaded once and then read from disk."""
-    path = workdir / f"{endpoint}.html"
-    if not path.exists():
-        response = requests.get(MANUAL_URL.format(endpoint.lower()), timeout=30)
-        response.raise_for_status()
-        path.write_text(response.text, encoding="utf-8")
-    return path.read_text(encoding="utf-8")
+    """The endpoint's manual page, downloaded afresh and saved beside the response.
+
+    Fetched on every run rather than reused from disk. `verify_response_types.py` compares the
+    response against this copy, so a page saved on an earlier run would check a new response
+    against the manual as it was then.
+    """
+    response = requests.get(MANUAL_URL.format(endpoint.lower()), timeout=30)
+    response.raise_for_status()
+    (workdir / f"{endpoint}.html").write_text(response.text, encoding="utf-8")
+    return response.text
 
 
 def example_request(page: str) -> str:
