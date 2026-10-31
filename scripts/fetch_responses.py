@@ -42,8 +42,12 @@ def manual_page(endpoint: str, workdir: pathlib.Path) -> str:
     """
     response = requests.get(MANUAL_URL.format(endpoint.lower()), timeout=30)
     response.raise_for_status()
-    (workdir / f"{endpoint}.html").write_text(response.text, encoding="utf-8")
-    return response.text
+    # Decoded as UTF-8 rather than through `response.text`. The server sends `text/html` with no
+    # charset, so `requests` falls back to ISO-8859-1, and the misdecoded ＜パラメータ＞ matches the
+    # pattern in `example_request` as if it were a query.
+    page = response.content.decode("utf-8")
+    (workdir / f"{endpoint}.html").write_text(page, encoding="utf-8")
+    return page
 
 
 def example_request(page: str) -> str:
