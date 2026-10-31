@@ -244,6 +244,12 @@ def reading_a_tile_response(client: Client) -> None:
     # An empty tile is an empty list, not an error, so this is the normal shape of the loop.
     assert len(districts["features"]) >= 0
 
+    # XKT015 keys its yearly fields by year, so they are not identifiers and are read as strings.
+    station = client.get_number_of_passengers_per_station(z=14, x=14547, y=6462)["features"][0]["properties"]
+    passengers: int = station["2024_passenger_count"]
+    station_name: str = station["S12_001_ja"]
+    assert passengers >= 0 and station_name != ""
+
 
 def reading_the_collections_own_members(client: Client) -> None:
     """`name` and `crs` sit beside `features`, and neither is in the manual."""
@@ -359,6 +365,10 @@ def rejected_by_the_checker(client: Client) -> None:
     # number is the mistake `dict[str, Any]` used to allow through.
     total: int = record["TradePrice"]  # ty: ignore[invalid-assignment]
     _ = total
+
+    # XKT015 used to send its yearly fields as 国土数値情報 attribute codes. It no longer does.
+    station = client.get_number_of_passengers_per_station(z=14, x=14547, y=6462)["features"][0]["properties"]
+    _ = station["S12_009"]  # ty: ignore[invalid-key]
 
     # Properties types are per endpoint, not shared, even where the field names overlap.
     plan = client.get_district_plans(z=11, x=1819, y=806)["features"][0]["properties"]

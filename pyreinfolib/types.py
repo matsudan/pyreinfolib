@@ -687,8 +687,80 @@ FirePreventionDistrictsAndQuasiFirePreventionDistrictsResponse = FeatureCollecti
 ]
 
 
-class NumberOfPassengersPerStationProperties(TileProperties, total=False):
+# The yearly fields of one feature's `properties` from XKT015, 国土数値情報（駅別乗降客数）API.
+#
+# Written with the functional syntax because the keys are not identifiers: each starts with the
+# year it counts. The manual's table stops at 2012 with 以下略; the years here are the ones a
+# response carries.
+_NumberOfPassengersPerStationYearlyTags = TypedDict(
+    "_NumberOfPassengersPerStationYearlyTags",
+    {
+        "2011_duplicate_code": str,  # 重複コード2011
+        "2011_data_availability_code": str,  # データ有無コード2011
+        "2011_remarks": str,  # 備考2011
+        "2011_passenger_count": int,  # 乗降客数2011
+        "2012_duplicate_code": str,  # 重複コード2012
+        "2012_data_availability_code": str,  # データ有無コード2012
+        "2012_remarks": str,  # 備考2012
+        "2012_passenger_count": int,  # 乗降客数2012
+        "2013_duplicate_code": str,  # 重複コード2013
+        "2013_data_availability_code": str,  # データ有無コード2013
+        "2013_remarks": str,  # 備考2013
+        "2013_passenger_count": int,  # 乗降客数2013
+        "2014_duplicate_code": str,  # 重複コード2014
+        "2014_data_availability_code": str,  # データ有無コード2014
+        "2014_remarks": str,  # 備考2014
+        "2014_passenger_count": int,  # 乗降客数2014
+        "2015_duplicate_code": str,  # 重複コード2015
+        "2015_data_availability_code": str,  # データ有無コード2015
+        "2015_remarks": str,  # 備考2015
+        "2015_passenger_count": int,  # 乗降客数2015
+        "2016_duplicate_code": str,  # 重複コード2016
+        "2016_data_availability_code": str,  # データ有無コード2016
+        "2016_remarks": str,  # 備考2016
+        "2016_passenger_count": int,  # 乗降客数2016
+        "2017_duplicate_code": str,  # 重複コード2017
+        "2017_data_availability_code": str,  # データ有無コード2017
+        "2017_remarks": str,  # 備考2017
+        "2017_passenger_count": int,  # 乗降客数2017
+        "2018_duplicate_code": str,  # 重複コード2018
+        "2018_data_availability_code": str,  # データ有無コード2018
+        "2018_remarks": str,  # 備考2018
+        "2018_passenger_count": int,  # 乗降客数2018
+        "2019_duplicate_code": str,  # 重複コード2019
+        "2019_data_availability_code": str,  # データ有無コード2019
+        "2019_remarks": str,  # 備考2019
+        "2019_passenger_count": int,  # 乗降客数2019
+        "2020_duplicate_code": str,  # 重複コード2020
+        "2020_data_availability_code": str,  # データ有無コード2020
+        "2020_remarks": str,  # 備考2020
+        "2020_passenger_count": int,  # 乗降客数2020
+        "2021_duplicate_code": str,  # 重複コード2021
+        "2021_data_availability_code": str,  # データ有無コード2021
+        "2021_remarks": str,  # 備考2021
+        "2021_passenger_count": int,  # 乗降客数2021
+        "2022_duplicate_code": str,  # 重複コード2022
+        "2022_data_availability_code": str,  # データ有無コード2022
+        "2022_remarks": str,  # 備考2022
+        "2022_passenger_count": int,  # 乗降客数2022
+        "2023_duplicate_code": str,  # 重複コード2023
+        "2023_data_availability_code": str,  # データ有無コード2023
+        "2023_remarks": str,  # 備考2023
+        "2023_passenger_count": int,  # 乗降客数2023
+        "2024_duplicate_code": str,  # 重複コード2024
+        "2024_data_availability_code": str,  # データ有無コード2024
+        "2024_remarks": str,  # 備考2024
+        "2024_passenger_count": int,  # 乗降客数2024
+    },
+    total=False,
+)
+
+
+class NumberOfPassengersPerStationProperties(_NumberOfPassengersPerStationYearlyTags, TileProperties, total=False):
     """One feature's `properties` from XKT015, 国土数値情報（駅別乗降客数）API.
+
+    Each year from 2011 to 2024 has four fields, keyed `{year}_{field}`, for example
+    `2024_passenger_count`.
 
     See https://www.reinfolib.mlit.go.jp/help/apiManual/xkt015/
     """
@@ -700,58 +772,6 @@ class NumberOfPassengersPerStationProperties(TileProperties, total=False):
     S12_003_ja: str  # 路線名
     S12_004: str  # 鉄道区分
     S12_005: str  # 事業者種別
-    S12_006: str  # 重複コード2011
-    S12_007: str  # データ有無コード2011
-    S12_008: str  # 備考2011
-    S12_009: int  # 乗降客数2011
-    S12_010: str  # 重複コード2012
-    S12_011: str  # データ有無コード2012
-    S12_012: str  # 備考2012
-    S12_013: int  # 乗降客数2012
-    S12_014: str  # 重複コード2013
-    S12_015: str  # データ有無コード2013
-    S12_016: str  # 備考2013
-    S12_017: int  # 乗降客数2013
-    S12_018: str  # 重複コード2014
-    S12_019: str  # データ有無コード2014
-    S12_020: str  # 備考2014
-    S12_021: int  # 乗降客数2014
-    S12_022: str  # 重複コード2015
-    S12_023: str  # データ有無コード2015
-    S12_024: str  # 備考2015
-    S12_025: int  # 乗降客数2015
-    S12_026: str  # 重複コード2016
-    S12_027: str  # データ有無コード2016
-    S12_028: str  # 備考2016
-    S12_029: int  # 乗降客数2016
-    S12_030: str  # 重複コード2017
-    S12_031: str  # データ有無コード2017
-    S12_032: str  # 備考2017
-    S12_033: int  # 乗降客数2017
-    S12_034: str  # 重複コード2018
-    S12_035: str  # データ有無コード2018
-    S12_036: str  # 備考2018
-    S12_037: int  # 乗降客数2018
-    S12_038: str  # 重複コード2019
-    S12_039: str  # データ有無コード2019
-    S12_040: str  # 備考2019
-    S12_041: int  # 乗降客数2019
-    S12_042: str  # 重複コード2020
-    S12_043: str  # データ有無コード2020
-    S12_044: str  # 備考2020
-    S12_045: int  # 乗降客数2020
-    S12_046: str  # 重複コード2021
-    S12_047: str  # データ有無コード2021
-    S12_048: str  # 備考2021
-    S12_049: int  # 乗降客数2021
-    S12_050: str  # 重複コード2022
-    S12_051: str  # データ有無コード2022
-    S12_052: str  # 備考2022
-    S12_053: int  # 乗降客数2022
-    S12_054: str  # 重複コード2023
-    S12_055: str  # データ有無コード2023
-    S12_056: str  # 備考2023
-    S12_057: int  # 乗降客数2023
 
 
 NumberOfPassengersPerStationResponse = FeatureCollection[NumberOfPassengersPerStationProperties]
