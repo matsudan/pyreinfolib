@@ -285,9 +285,9 @@ class Client:
         `params` is passed as a dict rather than as keyword arguments because two of the
         keys the API expects, `from` and `to`, are Python keywords.
 
-        The zoom level is checked here rather than in each public method. 32 of the API's 35
-        endpoints are addressed by tile, and a check that lives in the shared helper cannot be
-        left out of one of them.
+        The zoom level is checked here rather than in each public method. Most of the API is
+        addressed by tile, and a check that lives in the shared helper cannot be left out of
+        one of them.
 
         :param endpoint: Endpoint id, e.g. `XKT015`.
         :param z: Zoom level (scale).
