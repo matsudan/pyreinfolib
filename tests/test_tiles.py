@@ -1,22 +1,13 @@
 import math
-from collections.abc import Iterator
 
 import pytest
-import responses
-from helpers import params_of
 
-from pyreinfolib import Client
+from pyreinfolib import tiles
 from pyreinfolib.tiles import MAX_LATITUDE, Bounds, Tile, bounds, containing, count_covering, covering
 
-BASE_URL = "https://www.reinfolib.mlit.go.jp/ex-api/external/"
-
-# Tile coordinates lifted from the API manual's own examples, by way of the client tests. The
-# scheme is 地理院タイル's, which the manual links; these check that the arithmetic here lands
-# where the API's own examples do, so they anchor everything else.
-REFERENCE_TILES = [
-    Tile(z=11, x=1819, y=806),
-    Tile(z=13, x=7312, y=3008),
-]
+# The box and the point the README's examples use.
+README_BOX = {"west": 139.665, "south": 35.640, "east": 139.724, "north": 35.679}
+README_POINT = {"lon": 139.7016, "lat": 35.6580}
 
 # Spread across the country, including the ends of it, so the round trip is not only ever
 # exercised near Tokyo.
@@ -35,18 +26,23 @@ ZOOM_LEVELS = list(range(0, 21))
 
 
 class TestContaining:
-    @pytest.mark.parametrize("tile", REFERENCE_TILES, ids=lambda t: f"z{t.z}")
-    def test_it_reproduces_the_tiles_used_in_the_api_manual(self, tile):
-        """Asking for the centre of a known tile must give that tile back.
+    @pytest.mark.parametrize(
+        ("lon", "lat", "expected"),
+        [
+            (-90.0, 45.0, Tile(z=1, x=0, y=0)),
+            (90.0, 45.0, Tile(z=1, x=1, y=0)),
+            (-90.0, -45.0, Tile(z=1, x=0, y=1)),
+            (90.0, -45.0, Tile(z=1, x=1, y=1)),
+        ],
+        ids=["north-west", "north-east", "south-west", "south-east"],
+    )
+    def test_zoom_one_splits_the_world_into_quadrants_numbered_from_the_north_west(self, lon, lat, expected):
+        """Expectations that follow from the XYZ scheme itself rather than from this module.
 
-        The one check here that reaches outside this library. The round trip below holds for any
-        self-consistent grid, including a wrong one.
+        The round trip below holds for any self-consistent grid, including TMS, which counts
+        `y` from the south. These do not.
         """
-        centre = bounds(tile)
-        lon = (centre.west + centre.east) / 2
-        lat = (centre.south + centre.north) / 2
-
-        assert containing(lon=lon, lat=lat, z=tile.z) == tile
+        assert containing(lon=lon, lat=lat, z=1) == expected
 
     def test_a_point_always_falls_inside_the_bounds_of_its_own_tile(self):
         """The round trip, over every zoom level the API offers and then some.
@@ -156,14 +152,29 @@ class TestBounds:
 
 
 class TestCovering:
-    def test_it_is_lazy(self):
+    def test_it_does_not_build_a_tile_before_it_is_asked_for(self, monkeypatch):
         """A prefecture at zoom 15 runs to thousands of tiles, so building a list up front
         would commit the caller to the whole thing before the first request.
-        """
-        result = covering(west=138.94, south=35.5, east=139.93, north=35.9, z=15)
 
-        assert isinstance(result, Iterator)
-        assert not isinstance(result, list)
+        Counted rather than timed. The whole world at zoom 10 is about a million tiles, so an
+        eager implementation fails here at once instead of making the test slow.
+        """
+        built = 0
+
+        class CountingTile(Tile):
+            def __new__(cls, *args: int, **kwargs: int):
+                nonlocal built
+                built += 1
+                return super().__new__(cls, *args, **kwargs)
+
+        monkeypatch.setattr(tiles, "Tile", CountingTile)
+
+        world = covering(west=-180.0, south=-MAX_LATITUDE, east=180.0, north=MAX_LATITUDE, z=10)
+        first = next(world)
+
+        assert first == Tile(z=10, x=0, y=0)
+        # The two corner tiles the extent is computed from, and the one yielded.
+        assert built == 3
 
     def test_a_box_inside_one_tile_yields_that_tile_only(self):
         tile = Tile(z=13, x=7312, y=3008)
@@ -183,15 +194,17 @@ class TestCovering:
 
         assert result == [tile]
 
-    def test_it_yields_row_by_row_from_the_north_west(self):
-        result = list(covering(west=139.665, south=35.640, east=139.724, north=35.679, z=13))
-        first, last = result[0], result[-1]
+    def test_it_yields_every_tile_between_the_corner_tiles_once_row_by_row(self):
+        """Compared whole, so a missing interior tile, a duplicate and the order all show here."""
+        z = 15
+        top_left = containing(lon=README_BOX["west"], lat=README_BOX["north"], z=z)
+        bottom_right = containing(lon=README_BOX["east"], lat=README_BOX["south"], z=z)
 
-        assert first.x <= last.x
-        assert first.y <= last.y
-        # Row major: y is non-decreasing throughout, and x restarts on each new row.
-        assert [t.y for t in result] == sorted(t.y for t in result)
-        assert result == sorted(result, key=lambda t: (t.y, t.x))
+        expected = [
+            Tile(z, x, y) for y in range(top_left.y, bottom_right.y + 1) for x in range(top_left.x, bottom_right.x + 1)
+        ]
+
+        assert list(covering(**README_BOX, z=z)) == expected
 
     def test_every_tile_it_yields_overlaps_the_box(self):
         west, south, east, north = 139.665, 35.640, 139.724, 35.679
@@ -201,14 +214,6 @@ class TestCovering:
 
             assert extent.west < east and extent.east > west, f"{tile} is outside in longitude"
             assert extent.south < north and extent.north > south, f"{tile} is outside in latitude"
-
-    def test_the_box_corners_are_covered(self):
-        """Missing a corner tile would silently drop data at the edge of an area of interest."""
-        west, south, east, north = 139.665, 35.640, 139.724, 35.679
-        result = set(covering(west=west, south=south, east=east, north=north, z=15))
-
-        for lon, lat in [(west, north), (east, north), (west, south), (east, south)]:
-            assert containing(lon=lon, lat=lat, z=15) in result
 
     @pytest.mark.parametrize("z", [11, 12, 13, 14, 15])
     def test_count_covering_agrees_with_what_covering_yields(self, z):
@@ -254,23 +259,18 @@ class TestCovering:
             covering(west=139.5, south=35.5, east=139.9, north=35.9, z=-1)
 
 
-class TestTile:
-    def test_it_unpacks_into_the_clients_tile_methods(self):
-        """The field order is a contract with `Client`, not a detail.
+class TestReadmeExamples:
+    """The README prints these values. If one changes, the README is wrong."""
 
-        `client.get_...(*tile)` is the documented way to use this, so reordering the fields
-        would break callers while every other test here kept passing.
-        """
-        tile = containing(lon=139.7016, lat=35.6580, z=15)
+    def test_containing(self):
+        assert containing(**README_POINT, z=15) == Tile(z=15, x=29099, y=12905)
 
-        with responses.RequestsMock() as mock_api:
-            mock_api.get(f"{BASE_URL}XKT015", json={"type": "FeatureCollection", "features": []})
+    def test_count_covering(self):
+        assert count_covering(**README_BOX, z=15) == 30
 
-            with Client(api_key="dummy") as client:
-                client.get_number_of_passengers_per_station(*tile)
+    def test_bounds(self):
+        extent = bounds(Tile(z=15, x=29099, y=12905))
 
-            params = params_of(mock_api.calls[0].request)
-
-        assert params["z"] == str(tile.z)
-        assert params["x"] == str(tile.x)
-        assert params["y"] == str(tile.y)
+        assert extent == pytest.approx(
+            Bounds(west=139.691162109375, south=35.65729624809628, east=139.7021484375, north=35.66622234103478)
+        )

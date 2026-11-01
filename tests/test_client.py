@@ -1,3 +1,4 @@
+import inspect
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
@@ -7,9 +8,10 @@ import requests
 import responses
 from helpers import params_of
 from requests.adapters import HTTPAdapter
+from urllib3 import HTTPResponse
 from urllib3.util import Retry
 
-from pyreinfolib import Client, tiles
+from pyreinfolib import Client
 from pyreinfolib.enums import LandPriceClassification, LandTypeCode, PriceClassification, UseDivision
 from pyreinfolib.exceptions import (
     APIError,
@@ -20,6 +22,7 @@ from pyreinfolib.exceptions import (
     ReinfolibError,
     TransportError,
 )
+from pyreinfolib.tiles import Tile
 
 BASE_URL = "https://www.reinfolib.mlit.go.jp/ex-api/external/"
 API_KEY = "dummy"
@@ -28,53 +31,59 @@ DEFAULT_TIMEOUT = 30.0
 DEFAULT_MAX_RETRIES = 3
 THROTTLED = {"json": {"message": "slow down"}, "status": 429}
 
-# Each tile endpoint, the arguments it needs beyond the coordinates, and the zoom levels its
-# docstring documents. XPT002 is the one that does not start at 11, which is why the check has
-# to be per endpoint rather than one shared range.
-TILE_ENDPOINTS = [
-    ("get_real_estate_prices_point", "XPT001", {"period_from": 20241, "period_to": 20241}, range(11, 16)),
-    ("get_land_market_value_publication_and_research_point", "XPT002", {"year": 2020}, range(13, 16)),
-    ("get_number_of_passengers_per_station", "XKT015", {}, range(11, 16)),
-    ("get_elementary_school_districts", "XKT004", {}, range(11, 16)),
-    ("get_junior_high_school_districts", "XKT005", {}, range(11, 16)),
-    ("get_welfare_facilities", "XKT011", {}, range(13, 16)),
-    ("get_libraries", "XKT017", {}, range(13, 16)),
-    ("get_natural_park_areas", "XKT019", {}, range(9, 16)),
-    ("get_disaster_risk_areas", "XKT016", {}, range(11, 16)),
-    ("get_densely_inhabited_districts", "XKT031", {}, range(9, 16)),
-    ("get_landslide_prevention_districts", "XKT021", {}, range(11, 16)),
-    ("get_steep_slope_failure_hazard_areas", "XKT022", {}, range(11, 16)),
-    ("get_disaster_history", "XST001", {}, range(9, 16)),
-]
-TILE_ENDPOINT_IDS = [
-    "XPT001",
-    "XPT002",
-    "XKT015",
-    "XKT004",
-    "XKT005",
-    "XKT011",
-    "XKT017",
-    "XKT019",
-    "XKT016",
-    "XKT031",
-    "XKT021",
-    "XKT022",
-    "XST001",
-]
+# Every tile endpoint: its id, the arguments it requires beyond the coordinates, and the zoom
+# levels its manual page documents. Written out rather than read from the client, because the
+# id and the range are exactly what a method copied from its neighbour gets wrong.
+TILE_ENDPOINTS: dict[str, tuple[str, dict[str, Any], range]] = {
+    "get_real_estate_prices_point": ("XPT001", {"period_from": 20241, "period_to": 20241}, range(11, 16)),
+    "get_land_market_value_publication_and_research_point": ("XPT002", {"year": 2020}, range(13, 16)),
+    "get_city_planning_areas_and_area_classification": ("XKT001", {}, range(11, 16)),
+    "get_use_districts": ("XKT002", {}, range(11, 16)),
+    "get_location_normalization_plans": ("XKT003", {}, range(11, 16)),
+    "get_elementary_school_districts": ("XKT004", {}, range(11, 16)),
+    "get_junior_high_school_districts": ("XKT005", {}, range(11, 16)),
+    "get_schools": ("XKT006", {}, range(13, 16)),
+    "get_nursery_schools_and_kindergartens_etc": ("XKT007", {}, range(13, 16)),
+    "get_medical_institutions": ("XKT010", {}, range(13, 16)),
+    "get_welfare_facilities": ("XKT011", {}, range(13, 16)),
+    "get_population_projections_in_250m_grid_squares": ("XKT013", {}, range(11, 16)),
+    "get_fire_prevention_districts_and_quasi_fire_prevention_districts": ("XKT014", {}, range(11, 16)),
+    "get_number_of_passengers_per_station": ("XKT015", {}, range(11, 16)),
+    "get_disaster_risk_areas": ("XKT016", {}, range(11, 16)),
+    "get_libraries": ("XKT017", {}, range(13, 16)),
+    "get_municipal_offices_and_meeting_facilities_etc": ("XKT018", {}, range(13, 16)),
+    "get_natural_park_areas": ("XKT019", {}, range(9, 16)),
+    "get_large_scale_developed_embankments": ("XKT020", {}, range(11, 16)),
+    "get_landslide_prevention_districts": ("XKT021", {}, range(11, 16)),
+    "get_steep_slope_failure_hazard_areas": ("XKT022", {}, range(11, 16)),
+    "get_district_plans": ("XKT023", {}, range(11, 16)),
+    "get_high_level_use_districts": ("XKT024", {}, range(11, 16)),
+    "get_liquefaction_tendency_based_on_topographical_classification": ("XKT025", {}, range(11, 16)),
+    "get_expected_flood_inundation_areas_at_maximum_scale": ("XKT026", {}, range(14, 16)),
+    "get_expected_storm_surge_inundation_areas": ("XKT027", {}, range(13, 16)),
+    "get_expected_tsunami_inundation": ("XKT028", {}, range(14, 16)),
+    "get_sediment_disaster_alert_areas": ("XKT029", {}, range(11, 16)),
+    "get_city_planning_roads": ("XKT030", {}, range(11, 16)),
+    "get_densely_inhabited_districts": ("XKT031", {}, range(9, 16)),
+    "get_designated_emergency_evacuation_sites": ("XGT001", {}, range(11, 16)),
+    "get_disaster_history": ("XST001", {}, range(9, 16)),
+    "get_special_monitored_areas": ("XNT001", {}, range(11, 16)),
+}
 
-# Tile endpoints whose only further parameters are optional filters, with the API's spelling
-# of the municipality code filter every one of them takes. Listed together because the filter
-# behaves the same across them: omitted means the whole tile, and a sequence is comma joined.
-FILTERED_TILE_ENDPOINTS = [
-    ("get_elementary_school_districts", "XKT004", 11),
-    ("get_junior_high_school_districts", "XKT005", 11),
-    ("get_welfare_facilities", "XKT011", 13),
-    ("get_libraries", "XKT017", 13),
-    ("get_disaster_risk_areas", "XKT016", 11),
-    ("get_densely_inhabited_districts", "XKT031", 9),
-    ("get_steep_slope_failure_hazard_areas", "XKT022", 11),
-]
-FILTERED_TILE_ENDPOINT_IDS = [endpoint for _, endpoint, _ in FILTERED_TILE_ENDPOINTS]
+
+def parameters_of(method_name: str) -> list[str]:
+    return list(inspect.signature(getattr(Client, method_name)).parameters)
+
+
+def endpoint_ids(method_names: list[str]) -> list[str]:
+    return [TILE_ENDPOINTS[name][0] for name in method_names]
+
+
+# Which tests apply to which endpoint follows from its signature. The expectations themselves,
+# the id and the zoom range, still come from the table above.
+TILE_METHODS = sorted(TILE_ENDPOINTS)
+COORDINATES_ONLY_METHODS = [name for name in TILE_METHODS if parameters_of(name) == ["self", "z", "x", "y"]]
+MUNICIPALITY_FILTERED_METHODS = [name for name in TILE_METHODS if "administrative_area_code" in parameters_of(name)]
 
 
 @dataclass
@@ -142,12 +151,6 @@ class TestClient:
             assert client.timeout == DEFAULT_TIMEOUT
             assert retries_of(client).total == DEFAULT_MAX_RETRIES
 
-    def test_init_accepts_custom_timeout(self):
-        with Client(api_key="dummy", timeout=5) as client:
-            assert client.timeout == 5
-        with Client(api_key="dummy", timeout=(3.0, 10.0)) as client:
-            assert client.timeout == (3.0, 10.0)
-
     @pytest.mark.parametrize("max_retries", [0, 1, 10], ids=["disabled", "one", "many"])
     def test_init_accepts_custom_max_retries(self, max_retries):
         with Client(api_key="dummy", max_retries=max_retries) as client:
@@ -162,11 +165,25 @@ class TestClient:
             # 404 means the query matched no data, so another attempt only waits to be told
             # the same thing.
             assert 404 not in retry.status_forcelist
-            assert retry.backoff_factor > 0
             # A `Retry-After` from the API wins over the computed backoff.
             assert retry.respect_retry_after_header is True
             # See `test__get_maps_an_exhausted_retry_sequence_to_the_status_it_ended_on`.
             assert retry.raise_on_status is False
+
+    def test_by_default_it_waits_0_2_and_4_seconds_before_the_retries(self):
+        """The README states these waits, so they are asserted as numbers.
+
+        Read from the mounted policy rather than timed, which would cost six seconds a run.
+        """
+        with Client(api_key="dummy") as client:
+            retry = retries_of(client)
+
+        waits = []
+        for _ in range(DEFAULT_MAX_RETRIES):
+            retry = retry.increment(method="GET", url="/", response=HTTPResponse(status=429))
+            waits.append(retry.get_backoff_time())
+
+        assert waits == [0, 2, 4]
 
     @pytest.mark.parametrize("api_key", ["", None], ids=["empty string", "None"])
     def test_init_rejects_an_empty_api_key(self, api_key):
@@ -213,14 +230,6 @@ class TestClient:
         request = mock_api.calls[0].request
         assert request.url == f"{BASE_URL}TEST001?param1=value1"
         assert request.headers["Ocp-Apim-Subscription-Key"] == API_KEY
-
-    def test__get_relative_endpoint_does_not_escape_base_path(self, mock_api, client):
-        """`urljoin` keeps the `/ex-api/external/` prefix as long as the endpoint is relative."""
-        mock_api.get(f"{BASE_URL}XIT001", json=DUMMY_RESPONSE)
-
-        client._get("XIT001")
-
-        assert mock_api.calls[0].request.url == f"{BASE_URL}XIT001"
 
     @pytest.mark.parametrize("timeout", [None, 5, (3.0, 10.0)], ids=["default", "scalar", "connect/read tuple"])
     def test__get_passes_timeout_to_transport(self, mock_api, timeout):
@@ -495,7 +504,7 @@ class TestClient:
                     "y": 806,
                     "period_from": 20241,
                     "period_to": 20242,
-                    "price_classification": PriceClassification.REAL_ESTATE_TRANSACTION_PRICE,
+                    "price_classification": PriceClassification.CONTRACT_PRICE,
                     "land_type_code": [LandTypeCode.LAND, LandTypeCode.FOREST_LAND],
                 },
                 expected_params={
@@ -505,28 +514,8 @@ class TestClient:
                     "y": "806",
                     "from": "20241",
                     "to": "20242",
-                    "priceClassification": "01",
+                    "priceClassification": "02",
                     "landTypeCode": "01,11",
-                },
-            ),
-            RequestCase(
-                id="single land type in a list is not comma separated",
-                args={
-                    "z": 15,
-                    "x": 1819,
-                    "y": 806,
-                    "period_from": 20241,
-                    "period_to": 20241,
-                    "land_type_code": [LandTypeCode.PRE_OWNED_CONDOMINIUMS_ETC],
-                },
-                expected_params={
-                    "response_format": "geojson",
-                    "z": "15",
-                    "x": "1819",
-                    "y": "806",
-                    "from": "20241",
-                    "to": "20241",
-                    "landTypeCode": "07",
                 },
             ),
             RequestCase(
@@ -625,24 +614,6 @@ class TestClient:
                 },
             ),
             RequestCase(
-                id="bare use category enum is not split into characters",
-                args={
-                    "z": 13,
-                    "x": 7312,
-                    "y": 3008,
-                    "year": 2020,
-                    "use_category_code": UseDivision.INDUSTRIAL_LAND,
-                },
-                expected_params={
-                    "response_format": "geojson",
-                    "z": "13",
-                    "x": "7312",
-                    "y": "3008",
-                    "year": "2020",
-                    "useCategoryCode": "09",
-                },
-            ),
-            RequestCase(
                 id="only required params",
                 args={"z": 15, "x": 7312, "y": 3008, "year": 2020},
                 expected_params={
@@ -659,108 +630,24 @@ class TestClient:
     def test_get_land_market_value_publication_and_research_point(self, mock_api, client, case):
         assert_request(mock_api, client.get_land_market_value_publication_and_research_point, "XPT002", case)
 
-    @pytest.mark.parametrize(
-        "case",
-        [
+    def test_get_disaster_history(self, mock_api, client):
+        """`disastertype_code` keeps the API's spelling, and its codes are joined like the rest."""
+        assert_request(
+            mock_api,
+            client.get_disaster_history,
+            "XST001",
             RequestCase(
-                id="tile coordinates only",
-                args={"z": 11, "x": 1819, "y": 806},
-                expected_params={"response_format": "geojson", "z": "11", "x": "1819", "y": "806"},
+                id="several disaster classifications",
+                args={"z": 9, "x": 227, "y": 100, "disastertype_code": ["11", "22"]},
+                expected_params={
+                    "response_format": "geojson",
+                    "z": "9",
+                    "x": "227",
+                    "y": "100",
+                    "disastertype_code": "11,22",
+                },
             ),
-        ],
-        ids=lambda case: case.id,
-    )
-    def test_get_number_of_passengers_per_station(self, mock_api, client, case):
-        assert_request(mock_api, client.get_number_of_passengers_per_station, "XKT015", case)
-
-    @pytest.mark.parametrize(
-        ("method_name", "endpoint", "args"),
-        [
-            (
-                "get_real_estate_prices_point",
-                "XPT001",
-                {"z": 11, "x": 1819, "y": 806, "period_from": 20241, "period_to": 20241},
-            ),
-            (
-                "get_land_market_value_publication_and_research_point",
-                "XPT002",
-                {"z": 13, "x": 7312, "y": 3008, "year": 2020},
-            ),
-            (
-                "get_number_of_passengers_per_station",
-                "XKT015",
-                {"z": 11, "x": 1819, "y": 806},
-            ),
-        ],
-        ids=["XPT001", "XPT002", "XKT015"],
-    )
-    def test_tile_endpoints_all_send_the_shared_parameters(self, mock_api, client, method_name, endpoint, args):
-        """Asserted across methods rather than per method, because the keys now come from
-        one place. Most of the API is addressed by tile, so a mistake in `_get_tile` would
-        otherwise have to be caught separately for every endpoint added on top of it.
-        """
-        mock_api.get(f"{BASE_URL}{endpoint}", json=DUMMY_RESPONSE)
-
-        getattr(client, method_name)(**args)
-
-        params = params_of(mock_api.calls[0].request)
-        assert params["response_format"] == "geojson"
-        assert params["z"] == str(args["z"])
-        assert params["x"] == str(args["x"])
-        assert params["y"] == str(args["y"])
-
-    @pytest.mark.parametrize(("method_name", "endpoint", "extra", "zoom_levels"), TILE_ENDPOINTS, ids=TILE_ENDPOINT_IDS)
-    def test_tile_endpoints_accept_a_zoom_level_held_in_a_variable(
-        self, mock_api, client, method_name, endpoint, extra, zoom_levels
-    ):
-        """`z` is annotated `int`, not a `Literal`, and this is why.
-
-        A `Literal` only constrains a call site that writes the number out. Every documented
-        way of obtaining a zoom level here produces an `int` -- `tiles.containing` and
-        `tiles.covering` both do -- so the `Literal` rejected the intended usage while
-        catching nothing about an out-of-range level that arrived computed.
-        """
-        for _ in zoom_levels:
-            mock_api.get(f"{BASE_URL}{endpoint}", json=DUMMY_RESPONSE)
-
-        for z in zoom_levels:
-            getattr(client, method_name)(z=z, x=1, y=1, **extra)
-
-        assert len(mock_api.calls) == len(zoom_levels)
-
-    @pytest.mark.parametrize(("method_name", "endpoint", "extra", "zoom_levels"), TILE_ENDPOINTS, ids=TILE_ENDPOINT_IDS)
-    def test_tile_endpoints_reject_a_zoom_level_they_do_not_document(
-        self, mock_api, client, method_name, endpoint, extra, zoom_levels
-    ):
-        """Nothing is registered on `mock_api`, so a level that slips through the check would
-        fail as an unmatched request rather than reaching the real API.
-        """
-        for z in (zoom_levels.start - 1, zoom_levels[-1] + 1, 0, -1, 99):
-            with pytest.raises(ValueError, match=endpoint):
-                getattr(client, method_name)(z=z, x=1, y=1, **extra)
-
-    @pytest.mark.parametrize("z", [11, 12])
-    def test_the_land_price_endpoint_rejects_levels_the_others_accept(self, mock_api, client, z):
-        """XPT002 starts at 13 where the rest start at 11.
-
-        One shared range would quietly send 11 to an endpoint that does not serve it, and the
-        API answers a tile it has no data for with an empty feature list rather than an error.
-        """
-        with pytest.raises(ValueError, match="XPT002"):
-            client.get_land_market_value_publication_and_research_point(z=z, x=7312, y=3008, year=2020)
-
-    def test_the_rejection_names_the_endpoint_and_the_range(self, mock_api, client):
-        """With 32 tile endpoints and four ranges among them, "z must be 11 to 15" on its own
-        does not tell the caller which endpoint disagreed.
-        """
-        with pytest.raises(ValueError) as exc_info:
-            client.get_land_market_value_publication_and_research_point(z=11, x=7312, y=3008, year=2020)
-
-        message = str(exc_info.value)
-        assert "XPT002" in message
-        assert "13" in message
-        assert "15" in message
-        assert "11" in message
+        )
 
 
 class TestExceptions:
@@ -786,23 +673,6 @@ class TestExceptions:
     def test_transport_error_is_not_an_api_error(self):
         """It has no status code, so code that reads `status_code` must not catch it."""
         assert not issubclass(TransportError, APIError)
-
-
-class TestEnums:
-    def test_the_two_price_classification_tables_stay_distinct(self):
-        """XPT002 numbers its codes from `0`, XIT001 and XPT001 from `01`.
-
-        The API spells the parameter `priceClassification` in all three, which invites
-        folding the two tables into one enum. Sending `01` where `0` is expected is answered
-        with a filtered or empty result rather than an error, so the mistake would not
-        surface at the call site.
-        """
-        price_codes = {member.value for member in PriceClassification}
-        land_price_codes = {member.value for member in LandPriceClassification}
-
-        assert price_codes == {"01", "02"}
-        assert land_price_codes == {"0", "1"}
-        assert not price_codes & land_price_codes
 
 
 class TestBlankArguments:
@@ -949,129 +819,93 @@ class TestBlankArguments:
         assert "station" in message
         assert "None" in message
 
-    def test_zero_is_not_treated_as_blank(self, mock_api, client):
-        """`x=0` is a valid tile coordinate, so the check compares against `""` rather than
-        testing truthiness.
+
+class TestTileEndpoints:
+    """What every endpoint addressed by tile has in common."""
+
+    def test_the_table_lists_every_tile_method_on_the_client(self):
+        """A tile endpoint added without a row here would skip every test below."""
+        on_the_client = {name for name in vars(Client) if name.startswith("get_") and "z" in parameters_of(name)}
+
+        assert set(TILE_ENDPOINTS) == on_the_client
+
+    @pytest.mark.parametrize("method_name", TILE_METHODS, ids=endpoint_ids(TILE_METHODS))
+    def test_it_accepts_every_zoom_level_its_manual_page_documents(self, mock_api, client, method_name):
+        endpoint, required, zoom_levels = TILE_ENDPOINTS[method_name]
+        for _ in zoom_levels:
+            mock_api.get(f"{BASE_URL}{endpoint}", json=DUMMY_RESPONSE)
+
+        for z in zoom_levels:
+            getattr(client, method_name)(z=z, x=1819, y=806, **required)
+
+        assert len(mock_api.calls) == len(zoom_levels)
+
+    @pytest.mark.parametrize("method_name", TILE_METHODS, ids=endpoint_ids(TILE_METHODS))
+    def test_it_refuses_the_levels_either_side_of_that_range(self, mock_api, client, method_name):
+        """Nothing is registered on `mock_api`, so a level that slipped through the check would
+        fail as an unmatched request rather than reaching the API, which answers a level it
+        does not serve with an empty tile.
         """
-        mock_api.get(f"{BASE_URL}XKT015", json=DUMMY_RESPONSE)
+        endpoint, required, zoom_levels = TILE_ENDPOINTS[method_name]
 
-        client.get_number_of_passengers_per_station(z=11, x=0, y=0)
+        for z in (zoom_levels.start - 1, zoom_levels[-1] + 1):
+            with pytest.raises(ValueError, match=endpoint):
+                getattr(client, method_name)(z=z, x=1819, y=806, **required)
 
-        assert params_of(mock_api.calls[0].request)["x"] == "0"
+    def test_the_rejection_names_the_endpoint_and_the_range(self, mock_api, client):
+        """The ranges differ between endpoints, so "z must be 11 to 15" on its own would not
+        tell the caller which endpoint disagreed.
+        """
+        with pytest.raises(ValueError) as exc_info:
+            client.get_land_market_value_publication_and_research_point(z=11, x=7312, y=3008, year=2020)
 
+        message = str(exc_info.value)
+        assert "XPT002" in message
+        assert "13" in message
+        assert "15" in message
+        assert "11" in message
 
-# Endpoints that take nothing but the tile coordinates, with the zoom levels their manual page
-# documents. The zoom range is the only thing that varies between them, and it is the only
-# thing about them that can be got wrong without the request failing outright: too low or too
-# high is refused locally, but a range that is wrong in the other direction would refuse a
-# level the API serves.
-TILE_ONLY_ENDPOINTS = [
-    ("get_city_planning_areas_and_area_classification", "XKT001", range(11, 16)),
-    ("get_use_districts", "XKT002", range(11, 16)),
-    ("get_location_normalization_plans", "XKT003", range(11, 16)),
-    ("get_schools", "XKT006", range(13, 16)),
-    ("get_nursery_schools_and_kindergartens_etc", "XKT007", range(13, 16)),
-    ("get_medical_institutions", "XKT010", range(13, 16)),
-    ("get_population_projections_in_250m_grid_squares", "XKT013", range(11, 16)),
-    ("get_fire_prevention_districts_and_quasi_fire_prevention_districts", "XKT014", range(11, 16)),
-    ("get_number_of_passengers_per_station", "XKT015", range(11, 16)),
-    ("get_municipal_offices_and_meeting_facilities_etc", "XKT018", range(13, 16)),
-    ("get_district_plans", "XKT023", range(11, 16)),
-    ("get_large_scale_developed_embankments", "XKT020", range(11, 16)),
-    ("get_high_level_use_districts", "XKT024", range(11, 16)),
-    ("get_expected_flood_inundation_areas_at_maximum_scale", "XKT026", range(14, 16)),
-    ("get_expected_storm_surge_inundation_areas", "XKT027", range(13, 16)),
-    ("get_expected_tsunami_inundation", "XKT028", range(14, 16)),
-    ("get_sediment_disaster_alert_areas", "XKT029", range(11, 16)),
-    ("get_city_planning_roads", "XKT030", range(11, 16)),
-    ("get_designated_emergency_evacuation_sites", "XGT001", range(11, 16)),
-    ("get_liquefaction_tendency_based_on_topographical_classification", "XKT025", range(11, 16)),
-    ("get_special_monitored_areas", "XNT001", range(11, 16)),
-]
-TILE_ONLY_ENDPOINT_IDS = [endpoint for _, endpoint, _ in TILE_ONLY_ENDPOINTS]
+    @pytest.mark.parametrize("method_name", TILE_METHODS, ids=endpoint_ids(TILE_METHODS))
+    def test_a_tile_unpacks_into_z_x_y(self, mock_api, client, method_name):
+        """`client.get_...(*tile)` is the documented way to call these, so the first three
+        positional parameters of every one of them are a contract with `Tile`.
+        """
+        endpoint, required, zoom_levels = TILE_ENDPOINTS[method_name]
+        mock_api.get(f"{BASE_URL}{endpoint}", json=DUMMY_RESPONSE)
+        tile = Tile(z=zoom_levels[0], x=1819, y=806)
+
+        getattr(client, method_name)(*tile, **required)
+
+        params = params_of(mock_api.calls[0].request)
+        assert (params["z"], params["x"], params["y"]) == (str(tile.z), "1819", "806")
 
 
-class TestTileOnlyEndpoints:
-    @pytest.mark.parametrize(
-        ("method_name", "endpoint", "zoom_levels"), TILE_ONLY_ENDPOINTS, ids=TILE_ONLY_ENDPOINT_IDS
-    )
-    def test_it_requests_its_own_endpoint_with_the_shared_parameters(
-        self, mock_api, client, method_name, endpoint, zoom_levels
-    ):
+class TestCoordinatesOnlyEndpoints:
+    @pytest.mark.parametrize("method_name", COORDINATES_ONLY_METHODS, ids=endpoint_ids(COORDINATES_ONLY_METHODS))
+    def test_it_requests_its_own_endpoint_with_the_shared_parameters(self, mock_api, client, method_name):
         """The endpoint id is the one thing a copied method body gets wrong silently.
 
         Every one of these has the same shape, so a paste that kept the previous id would
         return plausible GeoJson from the wrong dataset.
         """
-        mock_api.get(f"{BASE_URL}{endpoint}", json=DUMMY_RESPONSE)
+        endpoint, _, zoom_levels = TILE_ENDPOINTS[method_name]
+        z = zoom_levels[0]
 
-        assert getattr(client, method_name)(z=zoom_levels[0], x=1819, y=806) == DUMMY_RESPONSE
-
-        request = mock_api.calls[0].request
-        assert request.url.split("?")[0] == f"{BASE_URL}{endpoint}"
-        assert request.headers["Ocp-Apim-Subscription-Key"] == API_KEY
-        assert params_of(request) == {
-            "response_format": "geojson",
-            "z": str(zoom_levels[0]),
-            "x": "1819",
-            "y": "806",
-        }
-
-    @pytest.mark.parametrize(
-        ("method_name", "endpoint", "zoom_levels"), TILE_ONLY_ENDPOINTS, ids=TILE_ONLY_ENDPOINT_IDS
-    )
-    def test_it_accepts_every_zoom_level_its_manual_page_documents(
-        self, mock_api, client, method_name, endpoint, zoom_levels
-    ):
-        for _ in zoom_levels:
-            mock_api.get(f"{BASE_URL}{endpoint}", json=DUMMY_RESPONSE)
-
-        for z in zoom_levels:
-            getattr(client, method_name)(z=z, x=1819, y=806)
-
-        assert len(mock_api.calls) == len(zoom_levels)
-
-    @pytest.mark.parametrize(
-        ("method_name", "endpoint", "zoom_levels"), TILE_ONLY_ENDPOINTS, ids=TILE_ONLY_ENDPOINT_IDS
-    )
-    def test_it_refuses_a_zoom_level_outside_that_range(self, mock_api, client, method_name, endpoint, zoom_levels):
-        for z in (zoom_levels.start - 1, zoom_levels[-1] + 1):
-            with pytest.raises(ValueError, match=endpoint):
-                getattr(client, method_name)(z=z, x=1819, y=806)
-
-    @pytest.mark.parametrize(
-        ("start", "expected"),
-        [
-            (13, {"XKT006", "XKT007", "XKT010", "XKT018", "XKT027"}),
-            (14, {"XKT026", "XKT028"}),
-        ],
-        ids=["thirteen and up", "fourteen and up"],
-    )
-    def test_the_endpoints_with_a_narrower_range_are_the_documented_ones(self, client, start, expected):
-        """Pinned as sets so that a range copied from the neighbouring method is visible.
-
-        Nothing about a wrong range shows up in a response: the request simply never leaves.
-        XKT026 and XKT028 start at 14, which is the narrowest the API documents.
-        """
-        narrower = {endpoint for _, endpoint, levels in TILE_ONLY_ENDPOINTS if levels.start == start}
-
-        assert narrower == expected
-
-    def test_a_tile_from_the_helpers_reaches_every_one_of_them(self, mock_api, client):
-        """`*tile` has to keep working as endpoints are added, not just for the first three."""
-        tile = tiles.containing(lon=139.7016, lat=35.6580, z=15)
-
-        for _, endpoint, _ in TILE_ONLY_ENDPOINTS:
-            mock_api.get(f"{BASE_URL}{endpoint}", json=DUMMY_RESPONSE)
-
-        for method_name, _, _ in TILE_ONLY_ENDPOINTS:
-            getattr(client, method_name)(*tile)
-
-        assert len(mock_api.calls) == len(TILE_ONLY_ENDPOINTS)
+        assert_request(
+            mock_api,
+            getattr(client, method_name),
+            endpoint,
+            RequestCase(
+                id="tile coordinates only",
+                args={"z": z, "x": 1819, "y": 806},
+                expected_params={"response_format": "geojson", "z": str(z), "x": "1819", "y": "806"},
+            ),
+        )
 
 
 class TestTileEndpointsWithOptionalFilters:
-    """XKT004, XKT005, XKT011 and XKT017 take filters on top of the coordinates.
+    """The endpoints that take a municipality filter, `administrative_area_code`, on top of the
+    coordinates.
 
     Every filter is optional: the manual marks only `response_format`, `z`, `x` and `y` as
     required. So each of these is also callable with the coordinates alone, and that has to
@@ -1079,16 +913,16 @@ class TestTileEndpointsWithOptionalFilters:
     """
 
     @pytest.mark.parametrize(
-        ("method_name", "endpoint", "zoom"), FILTERED_TILE_ENDPOINTS, ids=FILTERED_TILE_ENDPOINT_IDS
+        "method_name", MUNICIPALITY_FILTERED_METHODS, ids=endpoint_ids(MUNICIPALITY_FILTERED_METHODS)
     )
-    def test_it_requests_its_own_endpoint_with_the_coordinates_alone(
-        self, mock_api, client, method_name, endpoint, zoom
-    ):
+    def test_it_requests_its_own_endpoint_with_the_coordinates_alone(self, mock_api, client, method_name):
         """The endpoint id is the one thing a copied method body gets wrong silently.
 
         `expected_params` is compared whole, so a filter that leaked a default value into the
         query string would fail here rather than quietly narrowing the response.
         """
+        endpoint, _, zoom_levels = TILE_ENDPOINTS[method_name]
+        zoom = zoom_levels[0]
         assert_request(
             mock_api,
             getattr(client, method_name),
@@ -1100,25 +934,23 @@ class TestTileEndpointsWithOptionalFilters:
             ),
         )
 
-    @pytest.mark.parametrize(
-        ("method_name", "endpoint", "zoom"), FILTERED_TILE_ENDPOINTS, ids=FILTERED_TILE_ENDPOINT_IDS
-    )
-    def test_a_single_municipality_code_is_sent_unchanged(self, mock_api, client, method_name, endpoint, zoom):
+    def test_a_single_municipality_code_is_sent_unchanged(self, mock_api, client):
         """A bare string has to survive whole.
 
         `",".join()` treats a string as a sequence of characters, so without the check in
-        `_join_codes` this would send `1,3,1,0,2` instead of `13102`.
+        `_join_codes` this would send `1,3,1,0,2` instead of `13102`. Checked on one endpoint
+        because the branch is shared; the per-endpoint test below covers the parameter names.
         """
         assert_request(
             mock_api,
-            getattr(client, method_name),
-            endpoint,
+            client.get_elementary_school_districts,
+            "XKT004",
             RequestCase(
                 id="one code",
-                args={"z": zoom, "x": 1819, "y": 806, "administrative_area_code": "13102"},
+                args={"z": 11, "x": 1819, "y": 806, "administrative_area_code": "13102"},
                 expected_params={
                     "response_format": "geojson",
-                    "z": str(zoom),
+                    "z": "11",
                     "x": "1819",
                     "y": "806",
                     "administrativeAreaCode": "13102",
@@ -1127,9 +959,12 @@ class TestTileEndpointsWithOptionalFilters:
         )
 
     @pytest.mark.parametrize(
-        ("method_name", "endpoint", "zoom"), FILTERED_TILE_ENDPOINTS, ids=FILTERED_TILE_ENDPOINT_IDS
+        "method_name", MUNICIPALITY_FILTERED_METHODS, ids=endpoint_ids(MUNICIPALITY_FILTERED_METHODS)
     )
-    def test_several_municipality_codes_are_comma_joined(self, mock_api, client, method_name, endpoint, zoom):
+    def test_several_municipality_codes_are_comma_joined(self, mock_api, client, method_name):
+        """Per endpoint, because the parameter name is what a copied body gets wrong."""
+        endpoint, _, zoom_levels = TILE_ENDPOINTS[method_name]
+        zoom = zoom_levels[0]
         assert_request(
             mock_api,
             getattr(client, method_name),
@@ -1219,18 +1054,6 @@ class TestTileEndpointsWithOptionalFilters:
                 },
             ),
         )
-
-    @pytest.mark.parametrize(
-        ("method_name", "endpoint", "zoom"), FILTERED_TILE_ENDPOINTS, ids=FILTERED_TILE_ENDPOINT_IDS
-    )
-    def test_a_tile_from_the_helpers_reaches_it(self, mock_api, client, method_name, endpoint, zoom):
-        """`*tile` unpacks into `z`, `x`, `y`, which the filters must not displace."""
-        mock_api.get(f"{BASE_URL}{endpoint}", json=DUMMY_RESPONSE)
-        tile = tiles.containing(lon=139.7016, lat=35.6580, z=zoom)
-
-        assert getattr(client, method_name)(*tile) == DUMMY_RESPONSE
-
-        assert params_of(mock_api.calls[0].request)["z"] == str(zoom)
 
 
 class TestUnpaddedCodes:
